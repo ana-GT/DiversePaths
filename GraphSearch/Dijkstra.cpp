@@ -306,8 +306,7 @@ int Dijkstra::extractMin() {
  */
 int Dijkstra::lowerKey( Vertex* _v ) {
   
-  int u; int parent;
-  int temp;
+  int u; int parent; int temp;
 
   // Check its location
   u = _v->heap;
@@ -321,12 +320,20 @@ int Dijkstra::lowerKey( Vertex* _v ) {
     return 0;
   }
 
+  int hu; int hp;
+  Vertex* vu; Vertex* vp;
+
   while( u > 0 ) {
+
     parent = Parent(u);
-    if( mV[ mH[u] ].d < mV[ mH[parent] ].d ) {
-      temp = mH[u];
-      mH[u] = mH[parent]; mV[ mH[u] ].heap = u;
-      mH[parent] = temp; mV[ temp ].heap = parent;
+
+    hu = mH[u]; vu = &mV[hu];
+    hp = mH[parent]; vp = &mV[hp];
+
+    if( vu->d < vp->d ) {
+      temp = hu;
+      mH[u] = hp; vp->heap = u;
+      mH[parent] = temp; vu->heap = parent;
       u = parent;
     }
     else {
