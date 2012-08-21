@@ -1,78 +1,39 @@
 /**
  * @file main.cpp
- * @author A. Huaman
- **/
+ * @author A. Huaman Q.
+ * @date 2012-08-21
+ */
 
-#include "PCL_Tools/PCL_Tools.h"
-#include "GraphSearch/Graph.h"
-#include "GraphSearch/Dijkstra.h"
+
+#include <distance_field/voxel_grid.h>
 #include <stdio.h>
-#include <ctime>
 
 /**
- * @function main 
+ * @function main
  */
-int main ( int argc, char** argv ) {
-
-  printf("Create new graph \n");
-  Graph* g;
-  g = new Graph( 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.01, FREE );
-
-  g->createBox( 0.2,0.2,0.2, 0.1, 0.2, 0.3, OBSTACLE );
-  g->createBox( 0.6, 0.5, 0.4, 0.1, 0.3, 0.2, OBSTACLE );
-  printf("Num vertices graph: %d \n", g->getNumV() );
-
-  printf("Start Dijkstra \n");
-  Dijkstra d( g );
+int main( int argc, char* argv[] ) {
   
-  int x = 15; int y = 10; int z = 27;
-  if( g->getState(x,y,z) == FREE ) {
-    printf("Start is FREE. Search Dijkstra \n");
-    time_t ts, tf; double dt;
-    ts =  clock();
-    d.search( x,y,z );
-    tf = clock();
-    dt = (double)(tf - ts)/CLOCKS_PER_SEC;
-    printf("Search time: %f \n", dt );
+  int i;
+  int def = -1;
+  VoxelGrid<int> vg( 1.0, 0.8, 0.7, 
+		     0.01, 
+		     0.0, 0.0, 0.0, 
+		     def );
 
-  } else {
-    printf("Start is NOT FREE! \n");
-  }
+  int freeCell = 36;
+  vg.reset( freeCell );
+  int numX = vg.getNumCells( VoxelGrid<int>::DIM_X );
+  int numY = vg.getNumCells( VoxelGrid<int>::DIM_Y );
+  int numZ = vg.getNumCells( VoxelGrid<int>::DIM_Z );
+  printf("Get cell 3: %d \n", vg.getCell(3,3,3) );
 
-  printf("End! \n");
-  std::vector<Eigen::Vector3d> path;
-  path = d.getPath( 0.95, 0.95, 0.95 );
-  printf("Path size: %d \n", path.size() );
-  d.printInfo();
+  int whatever = 25;
+  vg.setCell(4,5,6, whatever);
 
- 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud;
-  obstacleCloud = g->getPCD( OBSTACLE );
-
-  printf("Creating a viewer \n");
-  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
-  viewer = createViewer();
-  
-  printf("View PCD \n");
-  
-  /*
-  pcl::PolygonMesh mesh;
-  printf("Creating a mesh \n");
-  getMesh( obstacleCloud, mesh );
-  viewMesh( &mesh, viewer);
-  */
-  
-  printf("Size of path: %d \n", path.size());
-  viewPath( path, viewer );
-  
-  //viewPCD( obstacleCloud, viewer );
-  printf("Starting the viewer \n");
-  while( !viewer->wasStopped() ) {
-    viewer->spinOnce(100);
-    boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-  }
-  
+  printf("Get cell 4-5-6: %d \n", vg.getCell(4,5,6) );
+  printf("Num cells: X: %d Y: %d Z: %d \n", numX, numY, numZ );
 
   return 0;
-  
+
 }
+

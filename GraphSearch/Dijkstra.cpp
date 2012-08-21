@@ -4,6 +4,10 @@
 
 #include "Dijkstra.h"
 
+const int Dijkstra::mNX[26] = { -1,-1,-1, -1,-1,-1, -1,-1,-1,   0, 0, 0,  0,   0,  0, 0, 0,   1, 1, 1, 1, 1, 1, 1, 1, 1 };
+const int Dijkstra::mNY[26] = { -1, 0, 1, -1, 0, 1, -1, 0, 1,  -1, 0, 1, -1,   1, -1, 0, 1,  -1, 0, 1,-1, 0, 1,-1, 0, 1 };
+const int Dijkstra::mNZ[26] = { -1,-1,-1,  0, 0, 0,  1, 1, 1,  -1,-1,-1,  0,   0,  1, 1, 1,  -1,-1,-1, 0, 0, 0, 1, 1, 1 };
+
 /**
  * @function Dijkstra
  * @brief Constructor
@@ -19,6 +23,9 @@ Dijkstra::Dijkstra( Graph* _G ) {
   // Save a pointer to vertice array
   mG = _G;
   mNumV = mG->getNumV();
+  mNumVx = mG->getNumVx();
+  mNumVy = mG->getNumVy();
+  mNumVz = mG->getNumVz();
 
   // Store vertices
   mV = new Vertex[mNumV];
@@ -62,21 +69,39 @@ void Dijkstra::search( int _vx, int _vy, int _vz ) {
   mStartVx = _vx; mStartVy = _vy; mStartVz = _vz;
 
   // 1. Initialize
+  time_t ts, tf; double dt;
+  
+  ts = clock();
   initFromSource();
+  tf = clock();
+  dt = (double)(tf - ts)/CLOCKS_PER_SEC;
+  printf("initFromSource time: %f \n", dt );
+  
   // 2. Enqueue the vertices
+  ts = clock();
   enqueue();
+  tf = clock();
+  dt = (double)(tf - ts)/CLOCKS_PER_SEC;
+  printf("enqueue time: %f \n", dt );
 
   // 3. Loop
+
+  ts = clock();
   int u;
+  Vertex* vu;
 
   while( mHSize != 0 ) {
     u = extractMin();
+    vu = &mV[u];
+
     std::vector<int> adj = getAdj(u);
     for( int i = 0; i < adj.size(); ++i ) {
-      relax( &mV[u], &mV[ adj[i] ] );
+      relax( vu, &mV[ adj[i] ] );
     }
   }
-
+  tf = clock();
+  dt = (double)(tf - ts)/CLOCKS_PER_SEC;
+  printf("loop time: %f \n", dt );
 
 }
 
@@ -93,25 +118,21 @@ std::vector<int> Dijkstra::getAdj( int _u ) {
 
   x = v->x; y = v->y; z = v->z;
 
-  for( int i = -1; i <=1; ++i ) {
-    for( int j = -1; j <=1; ++j ) {
-      for( int k = -1; k <=1; ++k ) {
-	if( i != 0 || j != 0 || k != 0 ) {
-	  ax = x +i;
-	  ay = y + j;
-	  az = z + k;
-	  if( mG->isValid( ax, ay, az ) == true ) {
-	    int ref = mG->ref(ax, ay, az);
-	    if( mG->getState(ref ) == FREE ) {
-	      adj.push_back(ref);
-	    }
-	  }
-	      
-	} // non all zero
+  for( int i = 0; i < 26; ++ i ) {
 
-      } // for k
-    } // for j
-  } // for i
+    ax = x + mNX[i];
+    ay = y + mNY[i];
+    az = z + mNZ[i];
+
+    //    if( mG->isValid( ax, ay, az ) == true ) {
+    if( ax >= 0 && ax < mNumVx && ay >= 0 && ay < mNumVy && az >= 0 && az < mNumVz ) {
+	int ref = mG->ref(ax, ay, az);
+      if( mG->getState(ref ) == FREE ) {
+	adj.push_back(ref);
+      }
+    }
+  }
+      
 
   return adj;
 }
@@ -139,6 +160,7 @@ void Dijkstra::initFromSource() {
   for( int i = 0; i < mNumV; ++i ) {
     v->parent = NIL;
     v->d = INF;
+    v++;
   }
 
   // Start
@@ -257,7 +279,7 @@ int Dijkstra::extractMin() {
 
   // Save first element to extract
   int top = mH[0];
-  mV[ mH[0] ].heap = NIL;
+  mV[ top ].heap = NIL;
 
   // Put last element on top
   mH[0] = mH[mHSize-1]; mV[ mH[mHSize-1] ].heap = 0;

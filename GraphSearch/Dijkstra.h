@@ -35,10 +35,15 @@ class Dijkstra {
   inline int Parent( int _u );
   inline int Left( int _u );
   inline int Right( int _u );
+  
+  static const int mNX[26];
+  static const int mNY[26];
+  static const int mNZ[26];
 
  private:
   int mNumV;
   Vertex* mV;
+  int mNumVx; int mNumVy; int mNumVz;
   int mStartVx; int mStartVy; int mStartVz;
   int mStartIndex;
 
@@ -57,6 +62,7 @@ class Dijkstra {
  */
 inline int Dijkstra::Parent( int _u ) {
   return (_u - 1 ) / 2;
+  //return (_u - 1 ) >> 1;
 }
 
 /**
@@ -64,6 +70,7 @@ inline int Dijkstra::Parent( int _u ) {
  */
 inline int Dijkstra::Left( int _u ) {
   return 2*_u+1;
+  //return (_u << 1) + 1;
 }
 
 /**
@@ -71,6 +78,7 @@ inline int Dijkstra::Left( int _u ) {
  */
 inline int Dijkstra::Right( int _u ) {
   return 2*_u+2;
+  //return (_u + 1) << 1;
 }
 
 #endif /**  __DIJKSTRA_H__ */
