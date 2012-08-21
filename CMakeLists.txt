@@ -3,11 +3,13 @@
 cmake_minimum_required( VERSION 2.8 FATAL_ERROR )
 project( Test1 )
 find_package( PCL 1.3 REQUIRED )
-include_directories( ${PCL_INCLUDE_DIRS} . RosFx )
+include_directories( ${PCL_INCLUDE_DIRS} . ROS_Tools )
 link_directories( ${PCL_LIBRARY_DIRS} )
 add_definitions( ${PCL_DEFINITIONS} )
 
-set( RosFx_srcs RosFx/distance_field/pf_distance_field.cpp RosFx/bfs_3d.cpp )
+set( ROS_tDf  ROS_Tools/distance_field )
+set( ROS_t ROS_Tools)
+set( RosFx_srcs ${ROS_tDf}/pf_distance_field.cpp ${ROS_t}/bfs_3d.cpp )
 set( src_files main.cpp )
 set( hdr_files )
 

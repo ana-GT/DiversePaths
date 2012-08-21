@@ -36,6 +36,7 @@
 
 #include <distance_field/pf_distance_field.h>
 #include <limits>
+#include <stdio.h>
 
 
 /**
@@ -61,7 +62,7 @@ PFDistanceField::~PFDistanceField() {
  * @function addPointsToField
  * @brief Add obstacle points ( distance 0.0 = init )
  */
-void PFDistanceField::addPointsToField( const std::vector<Eigen::Vector3d> points ) {
+void PFDistanceField::addPointsToField( const std::vector<Eigen::Vector3d> &points ) {
   int x, y, z;
   float init = 0.0;
   for (unsigned int i=0; i < points.size(); ++i)
@@ -179,3 +180,43 @@ void PFDistanceField::reset() {
   VoxelGrid<float>::reset(DT_INF);
 }
 
+///////// UTILITY FUNCTIONS /////////////////
+
+/**
+ * @function addBox
+ */
+bool  PFDistanceField::addBox( double sx, double sy, double sz,
+			      double ox, double oy, double oz ) {
+
+  std::vector<Eigen::Vector3d> boxPoints;
+  Eigen::Vector3d point;
+
+  int b1x; int b1y; int b1z;
+  int b2x; int b2y; int b2z;
+
+  bool check1; bool check2;
+
+  check1 = worldToGrid( ox, oy, oz, 
+			b1x, b1y, b1z );
+
+  check2 = worldToGrid( ox + sx, oy + sy, oz + sz,
+	       b2x, b2y, b2z );
+
+  if( !check1 || !check2 ) {
+    printf(" [X] [addBox] Box out of scope \n");
+    return false;
+  }
+
+  for( int i = b1x; i <= b2x; ++i ) {
+    for( int j = b1y; j <= b2y; ++j ) {
+      for( int k = b1z; k <= b2z; ++k ) {
+	point << i, j, k;
+	boxPoints.push_back( point );
+      }
+    }
+  }
+
+  // Add them as obstacles ( distance = 0.0 )
+  addPointsToField( boxPoints );
+  return true;
+}

@@ -57,8 +57,12 @@ class PFDistanceField: public DistanceField<float> {
   typedef std::vector<float> FloatArray;
   typedef std::vector<int>   IntArray;
   
-  virtual void addPointsToField( const std::vector<Eigen::Vector3d> points );
+  virtual void addPointsToField( const std::vector<Eigen::Vector3d> &points );
   virtual void reset();
+
+  // Utility functions
+  bool addBox( double sx, double sy, double sz,
+	       double ox, double oy, double oz );
   
   const float DT_INF;
   
@@ -67,6 +71,7 @@ class PFDistanceField: public DistanceField<float> {
   void dt( const FloatArray& f, size_t nn, FloatArray& ft, IntArray& v, FloatArray& z );
   void computeDT();
   virtual double getDistance( const float& object ) const;
+
   
 };
 
