@@ -666,6 +666,28 @@ bool BFS3D::getShortestPath( int _x, int _y, int _z,
 }
 
 /**
+ * @function getShortestPath
+ */
+bool BFS3D::getShortestPath(int x, int y, int z, std::vector<std::vector<double> > &path) {
+
+  std::vector<std::vector<int> > cellPath;
+  std::vector<double> p(3);
+
+  path.clear();
+
+  if( !getShortestPath( x, y, z, cellPath ) ) {
+    return false;
+  }
+  
+  for( int i = 0; i < cellPath.size(); ++i ) {
+    df_->gridToWorld( cellPath[i][0], cellPath[i][1], cellPath[i][2], p[0], p[1], p[2] );
+    path.push_back(p);
+  }
+  return true;
+}
+
+
+/**
  * @function configDistanceField
  */ 
 void BFS3D::configDistanceField( bool _enable, 

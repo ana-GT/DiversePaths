@@ -132,6 +132,7 @@ class BFS3D
 				       std::vector<std::vector<double> > &disttoObs_incells );
   bool setGoal(int x, int y, int z);
   bool getShortestPath(int x, int y, int z, std::vector<std::vector<int> > &path);
+  bool getShortestPath(int x, int y, int z, std::vector<std::vector<double> > &path);
   
  private:
   

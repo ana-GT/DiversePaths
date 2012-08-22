@@ -25,14 +25,14 @@ int main( int argc, char* argv[] ) {
   sx = 1.0; sy = 1.0; sz = 1.0;
   ox = 0.0; oy = 0.0; oz = 0.0;
   resolution = 0.01;
-
+  
   printf("Test PF \n");
   PFDistanceField pf( sx, sy, sz, resolution, ox, oy, oz );
   pf.reset();
   pf.addBox( 0.2, 0.2, 0.3, 0.05, 0.05, 0.3 );
   pf.addBox( 0.1, 0.1, 0.2, 0.4, 0.5, 0.4 );
   printf( "End test \n" );
-
+  
   // Settings BFS
   int cost = 1;
   int radius = 1;
@@ -66,10 +66,10 @@ int main( int argc, char* argv[] ) {
   //-- Get a path
   int px; int py; int pz;
   pf.worldToGrid(0.02, 0.02, 0.02, px, py, pz );
-  std::vector<std::vector<int> > spath;
+  std::vector<std::vector<double> > wPath;
   printf("Get shortest path \n");
-  if( bfs.getShortestPath( px, py, pz, spath) ) {
-    printf("Got a path of length: %d \n", spath.size() );
+  if( bfs.getShortestPath( px, py, pz, wPath) ) {
+    printf("Got a path of length: %d \n", wPath.size() );
   }
 
   /////// VISUALIZATION /////////////////////
@@ -83,10 +83,15 @@ int main( int argc, char* argv[] ) {
 
   //-- Put them in PCD
   pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud = writePCD( obstacles );
+  pcl::PolygonMesh triangles;
+  getMesh( obstacleCloud, triangles );
+  viewMesh( &triangles, viewer );
 
   //-- View PCD
   viewPCD( obstacleCloud, viewer );
-
+  viewPath( wPath, viewer );
+  viewBall( wPath[0][0], wPath[0][1], wPath[0][2], "startBall", 0.02, viewer );
+  viewBall( wPath[wPath.size() - 1][0], wPath[wPath.size() - 1][1], wPath[wPath.size() - 1][2], "endBall", 0.02, viewer );
 
   //-- Loop
   while( !viewer->wasStopped() ) {

@@ -22,21 +22,39 @@
 
 #include <Eigen/Core>
 
+
+boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer( int _r = 125, int _g = 125, int _b = 125 );
+
+void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
+	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	      int _r = 0, int _g = 255, int _b = 0 );
+
+void viewPath( std::vector<Eigen::Vector3d> _path, 
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r = 0, int _g = 0, int _b = 255 );
+
+void viewPath( std::vector< std::vector<double> > _path,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r = 0, int _g = 0, int _b = 255 );
+
+void viewMesh( pcl::PolygonMesh *_triangles,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r = 0, int _g = 255, int _b = 0 );
+
+void viewBall( double _x, double _y, double _z,
+	       std::string _name, double _radius,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r = 255, int _g = 0, int _b = 0 );
+
 void readPCDFile( char* _filename, 
 		  pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud );
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<Eigen::Vector3d> _points );
+pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<std::vector<double> > _points );
+
 void getMesh( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud, 
 	      pcl::PolygonMesh &_triangles,
 	      int _numNeighbors = 50,
 	      float _searchRadius = 0.015 ); // Usually 20 neighbors and 0.025 radius
-void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
-	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer );
-
-void viewMesh( pcl::PolygonMesh *_triangles,
-	       boost::shared_ptr<pcl::visualization::PCLVisualizer> );
-boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer();
-
-void viewPath( std::vector<Eigen::Vector3d> _path, 
-	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer );
 
 #endif /** __PCL_TOOLS_H__  */

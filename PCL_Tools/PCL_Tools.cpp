@@ -6,6 +6,98 @@
  */
 #include "PCL_Tools.h"
 
+/**
+ * @function createViewer
+ */
+boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer( int _r, int _g, int _b ) {
+
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("3D viewer") );
+  viewer->setBackgroundColor( _r/255.0, _g/255.0, _b/255.0 );
+  return viewer;
+}
+
+/**
+ * @function viewPCD
+ **/
+void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
+	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	      int _r, int _g, int _b ) {
+
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colorCloud( _cloud, _r, _g, _b );
+  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, colorCloud, "Pointcloud" );
+  _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "Pointcloud" );
+
+  _viewer->addCoordinateSystem(1.0);
+  _viewer->initCameraParameters();
+}
+
+/**
+ * @function viewPath
+ */
+void viewPath( std::vector<Eigen::Vector3d> _path, 
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r, int _g, int _b ) {
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+  cloud = writePCD( _path );
+  viewPCD( cloud, _viewer, _r, _g, _b );
+  
+}
+
+/**
+ * @function viewPath
+ */
+void viewPath( std::vector< std::vector<double> > _path,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r, int _g, int _b ) {
+  
+  // Create PCD
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pathCloud;
+  pathCloud = writePCD( _path );
+  
+  // Color
+  double r; double g; double b;
+
+  r = ( _r % 256 )/255.0;
+  g = ( _g % 256 )/255.0;
+  b = ( _b % 256 )/255.0;
+
+  int mCountPaths = 0;
+  for( int j = 0; j < pathCloud->points.size() - 1; ++j ) {
+    char linename[15];
+    sprintf( linename, "path%d-%d", mCountPaths, j );
+    std::string id(linename);
+    _viewer->addLine<pcl::PointXYZ>( pathCloud->points[j], pathCloud->points[j + 1], r, g, b, id );
+    _viewer->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 3, id );
+  }
+}
+
+/**
+ * @function viewBall
+ */
+void viewBall( double _x, double _y, double _z,
+	       std::string _name, double _radius,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r, int _g, int _b ) {
+
+  pcl::PointXYZ pos;
+  pos.x = _x;
+  pos.y = _y;
+  pos.z = _z;
+  _viewer->addSphere ( pos, _radius, _r/255.0, _g/255.0, _b/255.0, _name );
+  _viewer->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 5, _name );
+
+}
+
+/**
+ * @function viewMesh
+ **/
+void viewMesh( pcl::PolygonMesh *_triangles,
+	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+	       int _r, int _g, int _b ) {
+
+  _viewer->addPolygonMesh( *_triangles );
+} 
+
 
 /**
  * @function readPCDFile
@@ -41,6 +133,28 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<Eigen::Vector3d> _poin
 
   return cloud;
 }
+
+/**
+ * @function writePCD
+ */ 
+pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<std::vector< double > > _points ) {
+  
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud( new pcl::PointCloud<pcl::PointXYZ> );
+  
+  // Fill cloud
+  cloud->width = _points.size();
+  cloud->height = 1;
+  cloud->is_dense = false;
+  cloud->points.resize( cloud->width*cloud->height );
+  
+  for( size_t i = 0; i < cloud->points.size(); ++i ) {
+    cloud->points[i].x = _points[i][0];
+    cloud->points[i].y = _points[i][1];
+    cloud->points[i].z = _points[i][2];
+  }
+  
+  return cloud;
+} 
 
 
 /**
@@ -92,46 +206,3 @@ void getMesh( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 
 }
 
-/**
- * @function viewMesh
- **/
-void viewMesh( pcl::PolygonMesh *_triangles,
-	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer) {
-
-  _viewer->addPolygonMesh( *_triangles );
-} 
-
-/**
- * @function viewPath
- */
-void viewPath( std::vector<Eigen::Vector3d> _path, 
-	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer ) {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
-  cloud = writePCD( _path );
-  viewPCD( cloud, _viewer );
-  
-}
-
-/**
- * @function viewPCD
- **/
-void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
-	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer ) {
-
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colorCloud( _cloud, 255, 0, 0);
-  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, colorCloud, "Pointcloud" );
-  _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "Pointcloud" );
-
-  _viewer->addCoordinateSystem(1.0);
-  _viewer->initCameraParameters();
-}
-
-/**
- * @function createViewer
- */
-boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer() {
-
-  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer( new pcl::visualization::PCLVisualizer("3D viewer") );
-  viewer->setBackgroundColor(0,0,0);
-  return viewer;
-}
