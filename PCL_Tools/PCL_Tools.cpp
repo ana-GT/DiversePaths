@@ -118,8 +118,10 @@ void viewPath( std::vector<Eigen::Vector3d> _path,
 void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer ) {
 
-  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, "Pointcloud" );
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colorCloud( _cloud, 255, 0, 0);
+  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, colorCloud, "Pointcloud" );
   _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "Pointcloud" );
+
   _viewer->addCoordinateSystem(1.0);
   _viewer->initCameraParameters();
 }

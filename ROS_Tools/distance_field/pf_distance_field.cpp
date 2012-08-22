@@ -193,6 +193,7 @@ bool  PFDistanceField::addBox( double sx, double sy, double sz,
 
   int b1x; int b1y; int b1z;
   int b2x; int b2y; int b2z;
+  double px; double py; double pz;
 
   bool check1; bool check2;
 
@@ -210,7 +211,8 @@ bool  PFDistanceField::addBox( double sx, double sy, double sz,
   for( int i = b1x; i <= b2x; ++i ) {
     for( int j = b1y; j <= b2y; ++j ) {
       for( int k = b1z; k <= b2z; ++k ) {
-	point << i, j, k;
+	gridToWorld( i, j, k, px, py, pz );
+	point << px, py, pz;
 	boxPoints.push_back( point );
       }
     }
@@ -219,4 +221,32 @@ bool  PFDistanceField::addBox( double sx, double sy, double sz,
   // Add them as obstacles ( distance = 0.0 )
   addPointsToField( boxPoints );
   return true;
+}
+
+/**
+ * @function getPointsFromField
+ */
+void PFDistanceField::getPointsFromField( std::vector<Eigen::Vector3d> &points ) {
+
+  points.clear();
+  Eigen::Vector3d point;
+  double wx; double wy; double wz;
+
+  int nx = num_cells_[DIM_X];
+  int ny = num_cells_[DIM_Y];
+  int nz = num_cells_[DIM_Z];
+
+  for( int i = 0; i < nx; ++i ) {
+    for( int j = 0; j < ny; ++j ) {
+      for( int k = 0; k < nz; ++k ) {
+	if( getCell( i, j, k ) == 0.0 ) {
+	  gridToWorld( i, j, k, wx, wy, wz );
+	  point << wx, wy, wz;
+	  points.push_back( point );
+	}
+      }
+    }
+  }
+  // The End
+  printf(" [getPointsFromField] Number of points: %d \n", points.size() );
 }

@@ -649,7 +649,7 @@ bool BFS3D::getShortestPath( int _x, int _y, int _z,
       }
     }
 
-    printf(" [DEBUG] cntr: %d   xyz: %d %d %d val: %d", cntr, next_state[0],next_state[1],next_state[2],min_val);
+    //printf(" [DEBUG] cntr: %d   xyz: %d %d %d val: %d", cntr, next_state[0],next_state[1],next_state[2],min_val);
     _path.push_back( next_state );
 
     cntr++;

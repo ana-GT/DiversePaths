@@ -63,6 +63,7 @@ class PFDistanceField: public DistanceField<float> {
   // Utility functions
   bool addBox( double sx, double sy, double sz,
 	       double ox, double oy, double oz );
+  void getPointsFromField( std::vector<Eigen::Vector3d> &points );
   
   const float DT_INF;
   

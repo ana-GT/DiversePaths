@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <ctime>
 
+#include <boost/thread/thread.hpp>
+#include "PCL_Tools/PCL_Tools.h"
+
 /**
  * @function main
  */
@@ -27,9 +30,10 @@ int main( int argc, char* argv[] ) {
   PFDistanceField pf( sx, sy, sz, resolution, ox, oy, oz );
   pf.reset();
   pf.addBox( 0.2, 0.2, 0.3, 0.05, 0.05, 0.3 );
+  pf.addBox( 0.1, 0.1, 0.2, 0.4, 0.5, 0.4 );
   printf( "End test \n" );
 
-  // Path
+  // Settings BFS
   int cost = 1;
   int radius = 1;
   BFS3D bfs( pf.getNumCells( PFDistanceField::DIM_X ), 
@@ -38,6 +42,7 @@ int main( int argc, char* argv[] ) {
 	     radius, cost );
   bfs.configDistanceField( true, &pf );
   
+  //-- Set goal
   std::vector<int> goal(3);
   int gx; int gy; int gz;
 
@@ -46,9 +51,10 @@ int main( int argc, char* argv[] ) {
     return 0;
   }
 
-  printf( "gx: %d gy: %d gz: %d \n", gx, gy, gz );
   goal[0] = gx; goal[1] = gy; goal[2] = gz;
   bfs.setGoal( goal );
+
+  //-- Dijkstra 
   printf( " Start BFS \n" );
   time_t ts, tf; double dt;
   ts = clock();
@@ -56,10 +62,37 @@ int main( int argc, char* argv[] ) {
   tf = clock();
   dt = (double) (tf - ts) / CLOCKS_PER_SEC;
   printf( " End BFS: time: %f \n", dt );
-  
-  // View
+
+  //-- Get a path
+  int px; int py; int pz;
+  pf.worldToGrid(0.02, 0.02, 0.02, px, py, pz );
+  std::vector<std::vector<int> > spath;
+  printf("Get shortest path \n");
+  if( bfs.getShortestPath( px, py, pz, spath) ) {
+    printf("Got a path of length: %d \n", spath.size() );
+  }
+
+  /////// VISUALIZATION /////////////////////
+
+  //-- Create a viewer
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
+
+  //-- Get obstacles
+  std::vector<Eigen::Vector3d> obstacles;
+  pf.getPointsFromField( obstacles );
+
+  //-- Put them in PCD
+  pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud = writePCD( obstacles );
+
+  //-- View PCD
+  viewPCD( obstacleCloud, viewer );
 
 
+  //-- Loop
+  while( !viewer->wasStopped() ) {
+    viewer->spinOnce(100);
+    boost::this_thread::sleep( boost::posix_time::microseconds(100000));
+  }
   return 0;
 }
 

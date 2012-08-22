@@ -9,9 +9,12 @@ add_definitions( ${PCL_DEFINITIONS} )
 
 set( ROS_tDf  ROS_Tools/distance_field )
 set( ROS_t ROS_Tools)
+
+
 set( RosFx_srcs ${ROS_tDf}/pf_distance_field.cpp ${ROS_t}/bfs_3d.cpp )
+set( PCL_srcs PCL_Tools/PCL_Tools.cpp )
 set( src_files main.cpp )
 set( hdr_files )
 
-add_executable( main ${src_files} ${hdr_files} ${RosFx_srcs} )
+add_executable( main ${src_files} ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )
 target_link_libraries( main ${PCL_LIBRARIES} )
