@@ -132,8 +132,27 @@ class BFS3D
 				       std::vector<std::vector<double> > &disttoObs_incells );
   bool setGoal( int x, int y, int z );
   bool getShortestPath( int x, int y, int z, std::vector<std::vector<int> > &path );
+ 
+  /** DiversePath functions */
   bool getShortestPath( std::vector<int> start, std::vector<std::vector<double> > &path );
-  
+  bool searchPath3D( State3D*** statespace, 
+		     double wx, double wy, double sz );
+
+  inline int getDimX() { return dimX_; };
+  inline int getDimY() { return dimY_; };
+  inline int getDimZ() { return dimZ_; };
+
+  /** Older private functions that are now public */
+  void reInitializeState3D( State3D* state );
+  void initializeState3D( State3D* state, int x, int y, int z );
+  void create3DStateSpace( State3D**** statespace3D );
+  void delete3DStateSpace( State3D**** statespace3D );
+  inline int xyzToIndex( int x, int y, int z );
+  void search3DwithFifo();
+  void search3DwithQueue( State3D*** statespace );
+  bool isGoal( const std::vector<int> &state );
+  bool isValidCell( const int x, const int y, const int z );   
+
  private:
   
   int dimX_;
@@ -157,19 +176,7 @@ class BFS3D
   
   int dist_length_;
   std::vector<int> dist_;
-  
-  void reInitializeState3D( State3D* state );
-  void initializeState3D( State3D* state, int x, int y, int z );
-  void create3DStateSpace( State3D**** statespace3D );
-  void delete3DStateSpace( State3D**** statespace3D );
-  inline int xyzToIndex( int x, int y, int z );
-  void search3DwithFifo();
-  void search3DwithQueue( State3D*** statespace );
-  bool searchPath3D( State3D*** statespace, 
-		     double wx, double wy, double sz );
-  bool isGoal( const std::vector<int> &state );
-  bool isValidCell( const int x, const int y, const int z );
-  
+    
   FIFO *q_;
   
   /* for two arm planner - no roll,pitch allowed */
@@ -177,7 +184,7 @@ class BFS3D
   short unsigned int z_cells_below_;
   std::vector<std::vector<std::vector<unsigned char> > > xy_grid_;
   std::vector<std::vector<std::vector<double> > > inflatedxy_grid_; //in cells
-  
+
 };
 
 /////////////////////// INLINE FUNCTIONS /////////////////////////

@@ -4,15 +4,12 @@
  * @date 2012-08-21
  */
 
-#include <distance_field/pf_distance_field.h>
-
-#include "DiversePaths.h"
-#include <bfs_3d.h>
 #include <stdio.h>
 #include <ctime>
-
 #include <boost/thread/thread.hpp>
 #include "PCL_Tools/PCL_Tools.h"
+#include <distance_field/pf_distance_field.h>
+#include "DiversePaths.h"
 
 /**
  * @function main
@@ -41,16 +38,29 @@ int main( int argc, char* argv[] ) {
   double alpha = 0.1;
 
   DiversePaths dp( &pf, radius, cost );
-  printf("End search \n");
+
   // Search
-  std::vector<std::vector<std::vector<double> > > paths;
-  dp.Search( 0.16, 0.1, 0.1, 0.65, 0.4, 0.6, numPaths, alpha, paths );
- 
+  printf("Start search \n" );
+  std::vector<double> goal(3);
+  goal[0] = 0.65; goal[1] = 0.4; goal[2] = 0.6;
+  printf( "Set goal \n" );
+  dp.setGoal( goal );
+  printf(" Run Dijkstra \n");
+  dp.runDijkstra();
+  printf("End Dijkstra \n");
+
+  // Get one path
+  std::vector<std::vector<double> > path;
+  std::vector<double> start(3);
+  start[0] = 0.16; start[1] = 0.1; start[2] = 0.1;
+  printf("Get shortest path start \n");
+  dp.getShortestPath( start, path );
+  printf("Got it? \n");
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
 
-  // View your thing
-  dp.visualizePaths( viewer, true );
+  // View the path
+  dp.visualizePath( viewer, path, true );
 
   // Loop
   while( !viewer->wasStopped() ) {
