@@ -130,9 +130,9 @@ class BFS3D
   void computeDistancestoNonfreeAreas( std::vector<std::vector<unsigned char> > &Grid2D, 
 				       int width_x, int height_y, unsigned char obsthresh, 
 				       std::vector<std::vector<double> > &disttoObs_incells );
-  bool setGoal(int x, int y, int z);
-  bool getShortestPath(int x, int y, int z, std::vector<std::vector<int> > &path);
-  bool getShortestPath(int x, int y, int z, std::vector<std::vector<double> > &path);
+  bool setGoal( int x, int y, int z );
+  bool getShortestPath( int x, int y, int z, std::vector<std::vector<int> > &path );
+  bool getShortestPath( std::vector<int> start, std::vector<std::vector<double> > &path );
   
  private:
   
@@ -165,6 +165,8 @@ class BFS3D
   inline int xyzToIndex( int x, int y, int z );
   void search3DwithFifo();
   void search3DwithQueue( State3D*** statespace );
+  bool searchPath3D( State3D*** statespace, 
+		     double wx, double wy, double sz );
   bool isGoal( const std::vector<int> &state );
   bool isValidCell( const int x, const int y, const int z );
   

@@ -115,21 +115,27 @@ void BFS3D::init()
  * @function setGoal
  * @brief Set a (x,y,z) goal cell
  */
-bool BFS3D::setGoal( std::vector<int> _goal )
-{
+bool BFS3D::setGoal( std::vector<int> _goal ) {
+  
   if( _goal.empty() || _goal.size() < 3 )
     return false;
-
+  
   goal_.clear();
-
-  if( _goal[0] < dimX_ && _goal[1] < dimY_ && _goal[2] < dimZ_)
-    goal_.push_back( _goal );
-
-  if( goal_.empty() )
-  { 
-    printf("[bfs3d] Error: No valid goals were received.");
-    return false;
+  
+  if( _goal[0] < dimX_ && _goal[1] < dimY_ && _goal[2] < dimZ_) {
+    if( isValidCell( _goal[0], _goal[1], _goal[2] ) ) {
+      goal_.push_back( _goal );
+    } else {
+      printf( " [X] [setGoal] Goal is not valid [obstacle] \n" );
+    }
+    
   }
+  
+  if( goal_.empty() )
+    { 
+      printf("[bfs3d] Error: No valid goals were received.");
+      return false;
+    }
   return true;
 }
 
@@ -249,10 +255,6 @@ void BFS3D::delete3DStateSpace( State3D**** _statespace3D )
  */
 bool BFS3D::runBFS()
 {
-  //#if DEBUG_TIME
-  //clock_t currenttime = clock();
-  //#endif
-
   if( goal_.empty() )
   {
     printf( " [X] [bfs3d] Goal location is not set. Exiting!\n" );
@@ -271,10 +273,6 @@ bool BFS3D::runBFS()
   search3DwithQueue(statespace3D);
   delete3DStateSpace(&statespace3D);
   // end of uncomment
-
-//#if DEBUG_TIME
-//  ROS_DEBUG("completed in %.3f seconds.\n", double(clock()-currenttime) / CLOCKS_PER_SEC);
-//#endif
 
   return true;
 }
@@ -607,10 +605,11 @@ bool BFS3D::getShortestPath( std::vector<int> _start,
 
 /**
  * @function getShortestPath
+ * @brief This getShortestPath does not work for me (ACHQ). I use the one with args std::vector<int> for start
  */
 bool BFS3D::getShortestPath( int _x, int _y, int _z, 
 			     std::vector<std::vector<int> > &_path ) {
-
+  
   int val = 0, cntr = 0, min_val = INFINITE_COST;
   std::vector<int> state(3,0);
   std::vector<int> next_state(4,0);
@@ -668,17 +667,18 @@ bool BFS3D::getShortestPath( int _x, int _y, int _z,
 /**
  * @function getShortestPath
  */
-bool BFS3D::getShortestPath(int x, int y, int z, std::vector<std::vector<double> > &path) {
+bool BFS3D::getShortestPath( std::vector<int> start, 
+			    std::vector<std::vector<double> > &path ) {
 
   std::vector<std::vector<int> > cellPath;
   std::vector<double> p(3);
 
   path.clear();
-
-  if( !getShortestPath( x, y, z, cellPath ) ) {
+  if( !getShortestPath( start, cellPath ) ) {
+    printf(" [getShortestPath] Did not find a path. Exiting! \n");
     return false;
   }
-  
+
   for( int i = 0; i < cellPath.size(); ++i ) {
     df_->gridToWorld( cellPath[i][0], cellPath[i][1], cellPath[i][2], p[0], p[1], p[2] );
     path.push_back(p);

@@ -22,36 +22,54 @@
 
 #include <Eigen/Core>
 
+extern int PCL_TOOLS_COUNTER_PCD;
+extern int PCL_TOOLS_COUNTER_PATH;
+extern int PCL_TOOLS_COUNTER_BALL;
+extern int PCL_TOOLS_COUNTER_MESH;
 
+/**< init_PCL_Tools */
+void reset_PCL_Tools_counters();
+
+/**< createViewer: Create a PCLVisualizer */
 boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer( int _r = 125, int _g = 125, int _b = 125 );
 
+/**< viewPCD: Visualize a PCD cloud */
 void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	      int _r = 0, int _g = 255, int _b = 0 );
 
+/**< viewPath: Visualize a path made of lines */
 void viewPath( std::vector<Eigen::Vector3d> _path, 
 	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	       int _r = 0, int _g = 0, int _b = 255 );
 
+/**< viewPath: Visualize a path made of lines*/
 void viewPath( std::vector< std::vector<double> > _path,
 	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	       int _r = 0, int _g = 0, int _b = 255 );
 
+/**< viewMesh: Visualize a mesh (surface) */
 void viewMesh( pcl::PolygonMesh *_triangles,
 	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	       int _r = 0, int _g = 255, int _b = 0 );
 
+/**< viewBall: Visualize a ball */
 void viewBall( double _x, double _y, double _z,
-	       std::string _name, double _radius,
+	       double _radius,
 	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	       int _r = 255, int _g = 0, int _b = 0 );
 
+/**< readPCDFile */
 void readPCDFile( char* _filename, 
 		  pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud );
 
+/**< writePCD */
 pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<Eigen::Vector3d> _points );
+
+/**< writePCD */
 pcl::PointCloud<pcl::PointXYZ>::Ptr writePCD( std::vector<std::vector<double> > _points );
 
+/**< getMesh */
 void getMesh( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud, 
 	      pcl::PolygonMesh &_triangles,
 	      int _numNeighbors = 50,

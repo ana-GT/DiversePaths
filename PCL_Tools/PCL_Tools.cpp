@@ -6,6 +6,22 @@
  */
 #include "PCL_Tools.h"
 
+int PCL_TOOLS_COUNTER_PCD;
+int PCL_TOOLS_COUNTER_PATH;
+int PCL_TOOLS_COUNTER_BALL;
+int PCL_TOOLS_COUNTER_MESH;
+
+/**
+ * @function reset_PCL_Tools_counters
+ */
+void reset_PCL_Tools_counters() {
+  
+  PCL_TOOLS_COUNTER_PCD = 0;
+  PCL_TOOLS_COUNTER_PATH = 0;
+  PCL_TOOLS_COUNTER_BALL = 0;
+  PCL_TOOLS_COUNTER_MESH = 0;
+}
+
 /**
  * @function createViewer
  */
@@ -24,8 +40,14 @@ void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 	      int _r, int _g, int _b ) {
 
   pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colorCloud( _cloud, _r, _g, _b );
-  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, colorCloud, "Pointcloud" );
-  _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "Pointcloud" );
+
+  char linename[15];
+  sprintf( linename, "PCD-%d", PCL_TOOLS_COUNTER_PCD );
+  std::string id( linename );
+  PCL_TOOLS_COUNTER_PCD++;
+
+  _viewer->addPointCloud<pcl::PointXYZ> ( _cloud, colorCloud, id );
+  _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, id );
 
   _viewer->addCoordinateSystem(1.0);
   _viewer->initCameraParameters();
@@ -39,7 +61,19 @@ void viewPath( std::vector<Eigen::Vector3d> _path,
 	       int _r, int _g, int _b ) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
   cloud = writePCD( _path );
-  viewPCD( cloud, _viewer, _r, _g, _b );
+
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> colorCloud( cloud, _r, _g, _b );
+
+  char linename[15];
+  sprintf( linename, "Path-%d", PCL_TOOLS_COUNTER_PATH );
+  std::string id( linename );
+  PCL_TOOLS_COUNTER_PATH++;
+
+  _viewer->addPointCloud<pcl::PointXYZ> ( cloud, colorCloud, id );
+  _viewer->setPointCloudRenderingProperties( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, id );
+
+  _viewer->addCoordinateSystem(1.0);
+  _viewer->initCameraParameters();
   
 }
 
@@ -61,31 +95,38 @@ void viewPath( std::vector< std::vector<double> > _path,
   g = ( _g % 256 )/255.0;
   b = ( _b % 256 )/255.0;
 
-  int mCountPaths = 0;
   for( int j = 0; j < pathCloud->points.size() - 1; ++j ) {
     char linename[15];
-    sprintf( linename, "path%d-%d", mCountPaths, j );
+    sprintf( linename, "Path-%d-%d", PCL_TOOLS_COUNTER_PATH, j );
     std::string id(linename);
     _viewer->addLine<pcl::PointXYZ>( pathCloud->points[j], pathCloud->points[j + 1], r, g, b, id );
     _viewer->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 3, id );
   }
+  
+  PCL_TOOLS_COUNTER_PATH++;
 }
 
 /**
  * @function viewBall
  */
 void viewBall( double _x, double _y, double _z,
-	       std::string _name, double _radius,
+	       double _radius,
 	       boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 	       int _r, int _g, int _b ) {
-
+  
   pcl::PointXYZ pos;
   pos.x = _x;
   pos.y = _y;
   pos.z = _z;
-  _viewer->addSphere ( pos, _radius, _r/255.0, _g/255.0, _b/255.0, _name );
-  _viewer->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 5, _name );
-
+  
+  char linename[15];
+  sprintf( linename, "Ball-%d", PCL_TOOLS_COUNTER_BALL );
+  std::string id( linename );
+  PCL_TOOLS_COUNTER_BALL++;
+  
+  _viewer->addSphere ( pos, _radius, _r/255.0, _g/255.0, _b/255.0, id );
+  _viewer->setShapeRenderingProperties (pcl::visualization::PCL_VISUALIZER_LINE_WIDTH, 5, id );
+  
 }
 
 /**
