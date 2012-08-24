@@ -31,11 +31,13 @@
  */
 typedef struct {
   unsigned int g;
+  unsigned int f;
   int iterationclosed;
   int x;
   int y;
   int z;
 } State3D;
+
 
 /**
  * @class DiversePaths
@@ -64,7 +66,13 @@ class DiversePaths {
   bool setGoal( std::vector<int> _goal );
   bool setGoals( std::vector<std::vector<int> > _goals );
   bool runDijkstra();
+  bool runAstar(std::vector<double> _start, 
+		std::vector<std::vector<double> > &_path );
+  std::vector<std::vector<double> > runAstar(std::vector<double> _start );
   void searchOneSourceAllPaths( State3D*** _stateSpace );
+  bool searchOneToOnePath( std::vector<int> _start,
+			   std::vector<int> _goal,
+			   std::vector<std::vector<double> > &_path );
   bool getShortestPath( std::vector<int> _start,
 			std::vector< std::vector<int> > &_path );
   bool getShortestPath( std::vector<double> _start,
@@ -77,12 +85,32 @@ class DiversePaths {
   void delete3DStateSpace( State3D**** _stateSpace3D );
   inline int xyzToIndex( int _x, int _y, int _z );
   bool isGoal( const std::vector<int> &_state );
+  bool isGoal( const int &_x, const int &_y, const int &_z );
   bool isValidCell( const int _x, const int _y, const int _z );
+
+  // Heap functions
+  int HeuristicCost( int _sx, int _sy, int _sz, 
+		     int _gx, int _gy, int _gz );
+  void PushOpenSet( State3D* _u );
+  State3D* PopOpenSet();
+  bool TracePath( std::vector<int> _start,
+			      std::vector<int> _goal,
+			      std::vector< std::vector<double> > &_path );
+  void UpdateLowerOpenSet( State3D* _u ); 
+
+  // Distance Field to paths
+  PFDistanceField* createDfToPathSet( std::vector< std::vector<double> > _path  );
+
+  // Distance Field utilities
+  std::vector<std::vector<double> > getPointsAsFarAs( PFDistanceField* _df, 
+						      double _thresh, 
+						      double _tol = 0.005 );
 
   // Visualization
   void visualizePath( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 		      std::vector<std::vector<double> > _path,
-		      bool _viewObstacles = false );
+		      bool _viewObstacles = false,
+		      int _r = 0, int _g = 0, int _b = 255 );
 
  private:
 
@@ -104,6 +132,12 @@ class DiversePaths {
   
   int mDistLength;
   std::vector<int> mDist;
+
+  // A star variables
+  State3D ***mS3D;
+  int *mHT;
+  std::vector<State3D*> mOpenSet;
+
 };
 
 ////////////////// INLINE FUNCTIONS ////////////////////

@@ -33,6 +33,11 @@ void reset_PCL_Tools_counters();
 /**< createViewer: Create a PCLVisualizer */
 boost::shared_ptr<pcl::visualization::PCLVisualizer> createViewer( int _r = 125, int _g = 125, int _b = 125 );
 
+/**< viewPoints Visualize points **/
+void viewPoints( std::vector<std::vector<double> > _points,
+		 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+		 int _r = 255, int _g = 0, int _b = 255 );
+
 /**< viewPCD: Visualize a PCD cloud */
 void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 	      boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,

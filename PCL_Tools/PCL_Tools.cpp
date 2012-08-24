@@ -54,6 +54,20 @@ void viewPCD( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 }
 
 /**
+ * @function viewPoints
+ */
+void viewPoints( std::vector<std::vector<double> > _points,
+		 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+		 int _r, int _g, int _b ) {
+
+  // Create PCD
+  pcl::PointCloud<pcl::PointXYZ>::Ptr pointsCloud;
+  pointsCloud = writePCD( _points );
+
+  viewPCD( pointsCloud, _viewer, _r, _g, _b );
+}
+
+/**
  * @function viewPath
  */
 void viewPath( std::vector<Eigen::Vector3d> _path, 
