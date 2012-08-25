@@ -6,6 +6,10 @@
 #include "DiversePaths.h"
 #include <ctime>
 
+const int DiversePaths::NX[DIRECTIONS3D] = {  0, 0,  0, 1, 0, -1,  1,  0, -1,  0, 1, 0, -1,  0,  1, 1, -1, -1,  -1,-1,1, 1,-1,-1, 1, 1 };
+const int DiversePaths::NY[DIRECTIONS3D] = {  0, 0, -1, 0, 1,  0,  0,  1,  0, -1, 0, 1,  0, -1, -1, 1,  1, -1,  -1, 1,1,-1,-1, 1, 1,-1 };
+const int DiversePaths::NZ[DIRECTIONS3D] = { -1, 1,  0, 0, 0,  0, -1, -1, -1, -1, 1, 1,  1,  1,  0, 0,  0,  0,   1, 1,1, 1,-1,-1,-1,-1 };
+
 /**
  * @function DiversePaths
  * @brief Constructor
@@ -111,7 +115,7 @@ bool DiversePaths::setGoals( std::vector<std::vector<int> > _goals ) {
   }
 
   if( mGoal.empty() ) {
-    printf(" Error: No valid goals were received \n" );
+    printf(" [setGoals] Error: No valid goals were received \n" );
     return false;
   }
 
@@ -129,8 +133,6 @@ bool DiversePaths::runDijkstra() {
     printf( " [runDijkstra] Goal location is not set. Exiting \n" );
     return false;
   }
-
-  printf("Running Dijkstra with goal: %d %d %d \n", mGoal[0][0], mGoal[0][1], mGoal[0][2]);
 
   mDistLength = (mDimX - 1) + (mDimY - 1)*(mDimX) + (mDimZ - 1)*(mDimX)*(mDimY) + 1;
   mDist.resize( mDistLength );
@@ -166,9 +168,6 @@ bool DiversePaths::runAstar(std::vector<double> _start,
 
   // Run
   bool b;
-  printf(" [runAstar] Running A* with goal: (%d %d %d) and start (%d %d %d) \n", 
-	 mGoal[0][0], mGoal[0][1], mGoal[0][2],
-	 start[0], start[1], start[2] );
 
   mDistLength = (mDimX - 1) + (mDimY - 1)*(mDimX) + (mDimZ - 1)*(mDimX)*(mDimY) + 1;
 
@@ -203,10 +202,6 @@ bool DiversePaths::searchOneToOnePath( std::vector<int> _start,
   int x; int y; int z;
   unsigned int g_temp;
 
-  // these are added here temporarily. should be in the class
-  int dx[DIRECTIONS3D] = { 1,  1,  1,  0,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0,  0, -1, -1, -1};
-  int dy[DIRECTIONS3D] = { 1,  0, -1,  1,  0, -1, -1,  0,  1,    1,  0, -1,  1, -1, -1,  0,  1,    1,  0, -1,  1,  0, -1, -1,  0,  1};
-  int dz[DIRECTIONS3D] = {-1, -1, -1, -1, -1, -1, -1, -1, -1,    0,  0,  0,  0,  0,  0,  0,  0,    1,  1,  1,  1,  1,  1,  1,  1,  1};
 
   //-- Initialize all states to INF and Not Visited
   //-- 0: No visited 1: OpenSet 2: Closed
@@ -241,7 +236,7 @@ bool DiversePaths::searchOneToOnePath( std::vector<int> _start,
     }
     //-- Check if it is the goal
     if( u->x == _goal[0] && u->y == _goal[1] && u->z == _goal[2] ) {
-      printf("Found a path. Tracing it \n");
+      printf("[searchOneToOnePath] Found a path. Tracing it \n");
       TracePath( _start, _goal, _path );
       break;
     }
@@ -251,9 +246,9 @@ bool DiversePaths::searchOneToOnePath( std::vector<int> _start,
     
     // Iterate through neighbors
     for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = u->x + dx[d];
-      newy = u->y + dy[d];
-      newz = u->z + dz[d];
+      newx = u->x + NX[d];
+      newy = u->y + NY[d];
+      newz = u->z + NZ[d];
       
       // Check neighbor is no obstacle and inside the map
       if( newx < 0 || newx >= mDimX ||
@@ -336,10 +331,10 @@ void DiversePaths::PushOpenSet( State3D* _u ) {
   //-- Add
   mOpenSet.push_back(_u );
   n = mOpenSet.size() - 1;
-  
+
+  mHT[ xyzToIndex(_u->x, _u->y, _u->z) ] = n;  
   // If this is the first element added
   if( n == 0 ) {
-    mHT[ xyzToIndex(_u->x, _u->y, _u->z) ] = n;
     return;
   }
 
@@ -355,7 +350,7 @@ void DiversePaths::PushOpenSet( State3D* _u ) {
     qp = mOpenSet[parent];
     qn = mOpenSet[node];
     // Always try to put new nodes up
-    if( qp->f >= qn->f ) {
+    if( qp->f > qn->f ) {
       qtemp = qp;
       mOpenSet[parent] = qn; mHT[ xyzToIndex(qn->x, qn->y, qn->z) ] = parent;
       mOpenSet[node] = qtemp; mHT[ xyzToIndex(qtemp->x, qtemp->y, qtemp->z) ] = node;
@@ -366,7 +361,6 @@ void DiversePaths::PushOpenSet( State3D* _u ) {
     }
   }
 
-  mHT[ xyzToIndex(_u->x, _u->y, _u->z) ] = node;
 }
 
 /**
@@ -389,7 +383,7 @@ State3D* DiversePaths::PopOpenSet() {
 
   // Save the pop out element
   first = mOpenSet[0];
-  
+
   // Reorder your binary heap
   bottom = mOpenSet.size() - 1;
   v = mOpenSet[bottom];
@@ -406,15 +400,15 @@ State3D* DiversePaths::PopOpenSet() {
     child_2 = 2*node + 2;
 
     if( child_2 < n ) {
-      if( mOpenSet[node]->f >= mOpenSet[child_1]->f ) {
+      if( mOpenSet[node]->f > mOpenSet[child_1]->f ) {
 	u = child_1;
       }
-      if( mOpenSet[u]->f >= mOpenSet[child_2]->f ) {
+      if( mOpenSet[u]->f > mOpenSet[child_2]->f ) {
 	u = child_2;
       }
     }
     else if( child_1 < n ) {
-      if( mOpenSet[node]->f >= mOpenSet[child_1]->f ) {
+      if( mOpenSet[node]->f > mOpenSet[child_1]->f ) {
 	u = child_1;
       }
     }
@@ -431,7 +425,6 @@ State3D* DiversePaths::PopOpenSet() {
     }
 
   }
-
   return first;
 
 }
@@ -454,16 +447,16 @@ bool DiversePaths::TracePath( std::vector<int> _start,
   // Make sure the while loop eventually stops
   int max_path_length = mDimX*mDimY;
 
-  int dx[DIRECTIONS3D] = { 1,  1,  1,  0,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0,  0, -1, -1, -1};
-  int dy[DIRECTIONS3D] = { 1,  0, -1,  1,  0, -1, -1,  0,  1,    1,  0, -1,  1, -1, -1,  0,  1,    1,  0, -1,  1,  0, -1, -1,  0,  1};
-  int dz[DIRECTIONS3D] = {-1, -1, -1, -1, -1, -1, -1, -1, -1,    0,  0,  0,  0,  0,  0,  0,  0,    1,  1,  1,  1,  1,  1,  1,  1,  1};
-
-
   _path.resize(0);
   next_state[0] = _goal[0];
   next_state[1] = _goal[1];
   next_state[2] = _goal[2];
-  printf("G of goal: %d \n", mS3D[_goal[0]][_goal[1]][_goal[2]].g);
+
+  // Push the very first
+  std::vector<double> p(3);
+  mDf->gridToWorld( next_state[0], next_state[1], next_state[2], p[0], p[1], p[2] );
+  _path.push_back( p );
+
   while(  (next_state[0] != _start[0] || next_state[1] != _start[1] || next_state[2] != _start[2] )
 	  && counter < max_path_length ) {
     state = next_state;
@@ -471,9 +464,9 @@ bool DiversePaths::TracePath( std::vector<int> _start,
 
     // Iterate through neighbors
     for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = state[0] + dx[d];
-      newy = state[1] + dy[d];
-      newz = state[2] + dz[d];
+      newx = state[0] + NX[d];
+      newy = state[1] + NY[d];
+      newz = state[2] + NZ[d];
 
       // Check cell is inside the map and with no obstacles
       if( newx < 0 || newx >= mDimX ||
@@ -499,17 +492,14 @@ bool DiversePaths::TracePath( std::vector<int> _start,
 	val = val + mCost1Move;
       }
 
-      if( val < min_val ) {
+      if( val < min_val ) {  // Added equal sign
 	min_val = val;
 	next_state[0] = newx;
 	next_state[1] = newy;
 	next_state[2] = newz;
       }
     } // for
-    //printf("New state: %d %d %d \n", next_state[0], next_state[1], next_state[2]);
-    std::vector<double> p(3);
     mDf->gridToWorld( next_state[0], next_state[1], next_state[2], p[0], p[1], p[2] );
-    printf("[A] Min val: %d \n", min_val );
     _path.push_back( p );
     counter++;
   } // while
@@ -520,7 +510,7 @@ bool DiversePaths::TracePath( std::vector<int> _start,
     _path.clear();
     return false;
   }
-  
+
   return true;
 
 
@@ -537,6 +527,11 @@ void DiversePaths::UpdateLowerOpenSet( State3D* _u ) {
 
   //-- Find your guy
   n = mHT[ xyzToIndex(_u->x, _u->y, _u->z) ];
+
+  if( n == -1 ) {
+    printf("[UpdateLowerOpenSet] ERROR Trying to lower key from a non-open-set element. Exiting! \n");
+    return;
+  }
 
   //-- If it happens to be the first element
   if( n == 0 ) { 
@@ -580,11 +575,6 @@ void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace ) {
   int newx; int newy; int newz;
   int x; int y; int z;
   unsigned int g_temp;
-
-  // these are added here temporarily. should be in the class
-  int dx[DIRECTIONS3D] = { 1,  1,  1,  0,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0,  0, -1, -1, -1};
-  int dy[DIRECTIONS3D] = { 1,  0, -1,  1,  0, -1, -1,  0,  1,    1,  0, -1,  1, -1, -1,  0,  1,    1,  0, -1,  1,  0, -1, -1,  0,  1};
-  int dz[DIRECTIONS3D] = {-1, -1, -1, -1, -1, -1, -1, -1, -1,    0,  0,  0,  0,  0,  0,  0,  0,    1,  1,  1,  1,  1,  1,  1,  1,  1};
   
   //-- Create a queue
   std::queue< State3D* > mQ;
@@ -626,9 +616,9 @@ void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace ) {
 
     // Iterate through neighbors
     for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = u->x + dx[d];
-      newy = u->y + dy[d];
-      newz = u->z + dz[d];
+      newx = u->x + NX[d];
+      newy = u->y + NY[d];
+      newz = u->z + NZ[d];
       
       // Check neighbor is no obstacle and inside the map
       if( newx < 0 || newx >= mDimX ||
@@ -687,25 +677,24 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
   // Make sure the while loop eventually stops
   int max_path_length = mDimX*mDimY;
 
-  int dx[DIRECTIONS3D] = { 1,  1,  1,  0,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0, -1, -1, -1,    1,  1,  1,  0,  0,  0, -1, -1, -1};
-  int dy[DIRECTIONS3D] = { 1,  0, -1,  1,  0, -1, -1,  0,  1,    1,  0, -1,  1, -1, -1,  0,  1,    1,  0, -1,  1,  0, -1, -1,  0,  1};
-  int dz[DIRECTIONS3D] = {-1, -1, -1, -1, -1, -1, -1, -1, -1,    0,  0,  0,  0,  0,  0,  0,  0,    1,  1,  1,  1,  1,  1,  1,  1,  1};
-
-
   _path.resize(0);
   next_state[0] = _start[0];
   next_state[1] = _start[1];
   next_state[2] = _start[2];
 
+  // Push first element
+  _path.push_back( next_state );
+
+  // Iterate until you get to the goal
   while( !isGoal( next_state ) || counter > max_path_length ) {
     state = next_state;
     min_val = INFINITE_COST;
 
     // Iterate through neighbors
     for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = state[0] + dx[d];
-      newy = state[1] + dy[d];
-      newz = state[2] + dz[d];
+      newx = state[0] + NX[d];
+      newy = state[1] + NY[d];
+      newz = state[2] + NZ[d];
 
       // Check cell is inside the map and with no obstacles
       if( newx < 0 || newx >= mDimX ||
@@ -738,13 +727,9 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
 	next_state[2] = newz;
       }
     } // for
-    //printf("New state: %d %d %d \n", next_state[0], next_state[1], next_state[2]);
-    printf("Min val: %d \n", min_val);
     _path.push_back( next_state );
     counter++;
   } // while
-
-  printf("Dijkstra G is: %d \n", mDist[xyzToIndex(next_state[0], next_state[1], next_state[2])]);
 
   // Unable to find paths
   if( counter > max_path_length ) {
@@ -990,19 +975,18 @@ void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisua
   
   //-- View paths
   viewPath( _path, _viewer, _r, _g, _b );
-    viewBall( _path[0][0], _path[0][1], _path[0][2], 0.02, _viewer );
-    viewBall( _path[_path.size() - 1][0], 
-	      _path[_path.size() - 1][1], 
-	      _path[_path.size() - 1][2], 
-	      0.02, _viewer );    
-
-
+  viewBall( _path[0][0], _path[0][1], _path[0][2], 0.02, _viewer );
+  viewBall( _path[_path.size() - 1][0], 
+	    _path[_path.size() - 1][1], 
+	    _path[_path.size() - 1][2], 
+	    0.02, _viewer );    
+  
   if( _viewObstacles ) {
-
+    
     // Visualize obstacles (or not)
     int obsR; int obsG; int obsB;
     obsR = 0; obsG = 255; obsB = 0;
-
+    
     //-- Get obstacles
     std::vector<Eigen::Vector3d> obstacles;
     mDf->getPointsFromField( obstacles );

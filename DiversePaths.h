@@ -114,6 +114,10 @@ class DiversePaths {
 
  private:
 
+  static const int NX[];
+  static const int NY[];
+  static const int NZ[];
+
   int mDimX;
   int mDimY;
   int mDimZ;

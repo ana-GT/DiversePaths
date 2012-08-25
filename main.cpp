@@ -24,13 +24,11 @@ int main( int argc, char* argv[] ) {
   ox = 0.0; oy = 0.0; oz = 0.0;
   resolution = 0.0125;
   
-  printf("Test PF \n");
+  printf("Create PF Distance Field \n");
   PFDistanceField pf( sx, sy, sz, resolution, ox, oy, oz );
   pf.reset();
   pf.addBox( 0.2, 0.2, 0.3, 0.24, 0.24, 0.3 );
   pf.addBox( 0.1, 0.1, 0.2, 0.4, 0.5, 0.4 );
-  printf( "End test \n" );
-
 
   // Settings BFS
   int cost = 1; int radius = 5;
@@ -40,13 +38,11 @@ int main( int argc, char* argv[] ) {
   DiversePaths dp( &pf, radius, cost );
 
   // Search
-  printf("Start search \n" );
   std::vector<double> goal(3);
   goal[0] = 0.65; goal[1] = 0.4; goal[2] = 0.6;
-  printf( "Set goal \n" );
   dp.setGoal( goal );
-  printf(" Run Dijkstra \n");
-  
+
+  printf(" Run Dijkstra \n");  
   time_t ts; time_t tf; double dt;
   ts = clock();
   dp.runDijkstra();
@@ -59,12 +55,14 @@ int main( int argc, char* argv[] ) {
   std::vector<std::vector<double> > pathD;
   std::vector<double> start(3);
   start[0] = 0.16; start[1] = 0.1; start[2] = 0.1;
-  printf("Get shortest path start \n");
+
   dp.getShortestPath( start, pathD );
   printf("End of run. Path D size: %d \n", pathD.size() );
+
   printf("Run Astar \n");
   dp.runAstar( start, pathA );
   printf("End of run. Path A size: %d \n", pathA.size() );
+
   // Get DF from path
   printf("Create DF to Path Set \n");
   PFDistanceField* dpp;
