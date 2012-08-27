@@ -261,3 +261,31 @@ void getMesh( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 
 }
 
+/**
+ * @function convertToRGB
+ */
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr convertToRGB( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
+						     int _r, int _g, int _b ) {
+  
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_RGB( new pcl::PointCloud<pcl::PointXYZRGB> );
+  
+  // Fill cloud
+  cloud_RGB->width = _cloud->width;
+  cloud_RGB->height = _cloud->height;
+  cloud_RGB->is_dense = false;
+  cloud_RGB->points.resize( cloud_RGB->width*cloud_RGB->height );
+  
+  for( size_t i = 0; i < cloud_RGB->points.size(); ++i ) {
+    cloud_RGB->points[i].x = _cloud->points[i].x;
+    cloud_RGB->points[i].y = _cloud->points[i].y;
+    cloud_RGB->points[i].z = _cloud->points[i].z;
+    cloud_RGB->points[i].r = _r;
+    cloud_RGB->points[i].g = _g;
+    cloud_RGB->points[i].b = _b;
+  }
+  
+  return cloud_RGB;
+
+}
+
+

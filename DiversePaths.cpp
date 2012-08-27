@@ -47,7 +47,8 @@ DiversePaths::~DiversePaths() {
  */
 std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( std::vector<double> _start,
 									       std::vector<double> _goal,
-									       int _numPaths ) {
+									       int _numPaths,
+									       std::vector<std::vector<double> > &_midPoints ) {
   mNumPaths = _numPaths;
   std::vector<std::vector<std::vector<double> > > paths;
   std::vector<std::vector<double> > path;
@@ -55,6 +56,9 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
 
   std::vector<int> dGoal;
   std::vector<int> dStart;
+
+  // Get ready
+  _midPoints.resize(0);
 
   //-- 2. Get Dijkstra
   runDijkstra( _goal, dGoal );
@@ -86,11 +90,16 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
     double pathDist = 0.2;
     pointsPath = getNearestPointFromSet( dpp, pointsObst, thePoint, pathDist );
     
+    thePoint = pointsPath[ pointsPath.size() / 2  ];
+
     //-- 4. Find path with thePoint in the middle
     std::vector<std::vector<double> > pathSM; // Start - Middle
     std::vector<std::vector<double> > pathMG; // Middle - Goal
     getShortestPath( thePoint, _start, pathSM, dStart, true );
     getShortestPath( thePoint, _goal, pathMG, dGoal, false );
+
+    // Save thePoint
+    _midPoints.push_back( thePoint );
     
     // Make them together properly
     path.resize(0);

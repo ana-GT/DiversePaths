@@ -80,4 +80,8 @@ void getMesh( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
 	      int _numNeighbors = 50,
 	      float _searchRadius = 0.015 ); // Usually 20 neighbors and 0.025 radius
 
+/**< Utilities */
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr convertToRGB( pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud,
+						     int _r, int _g, int _b );
+
 #endif /** __PCL_TOOLS_H__  */

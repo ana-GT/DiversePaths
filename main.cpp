@@ -32,7 +32,7 @@ int main( int argc, char* argv[] ) {
 
   // Settings parameters
   int cost = 1; int radius = 3;
-  int numPaths = 10;
+  int numPaths = 2;
 
   DiversePaths dp( &pf, radius, cost );
 
@@ -44,8 +44,8 @@ int main( int argc, char* argv[] ) {
 
   // Paths
   std::vector<std::vector<std::vector<double> > > paths;
-
-  paths = dp.getDiversePaths( start, goal, numPaths );
+  std::vector<std::vector<double> > midPoints;  
+  paths = dp.getDiversePaths( start, goal, numPaths, midPoints );
 
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
@@ -53,8 +53,12 @@ int main( int argc, char* argv[] ) {
   // View the path
   reset_PCL_Tools_counters();
   dp.visualizePaths( viewer, paths, true );
-  // viewPoints( points, viewer, 255, 0, 255 );
 
+  // View balls
+  for( int i = 0; i < midPoints.size(); ++i ) {
+    viewBall( midPoints[i][0], midPoints[i][1], midPoints[i][2],
+	      0.025, viewer, 0, 0, 255 );
+  }
 
   // Loop
   while( !viewer->wasStopped() ) {
