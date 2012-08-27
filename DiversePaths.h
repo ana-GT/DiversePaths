@@ -62,11 +62,18 @@ class DiversePaths {
 		int _cost_per_cell );
   ~DiversePaths();
 
+  // Diverse Paths
+  std::vector<std::vector<std::vector<double> > > getDiversePaths( std::vector<double> _start,
+								   std::vector<double> _goal,
+								   int _numPaths );
+
+  // Search functions
   bool setGoal( std::vector<double> _goal );
   bool setGoal( std::vector<int> _goal );
   bool setGoals( std::vector<std::vector<int> > _goals );
   bool runDijkstra();
-  bool runAstar(std::vector<double> _start, 
+  bool runAstar(std::vector<double> _start,
+		std::vector<double> _goal,
 		std::vector<std::vector<double> > &_path );
   std::vector<std::vector<double> > runAstar(std::vector<double> _start );
   void searchOneSourceAllPaths( State3D*** _stateSpace );
@@ -102,15 +109,34 @@ class DiversePaths {
   PFDistanceField* createDfToPathSet( std::vector< std::vector<double> > _path  );
 
   // Distance Field utilities
+  void joinPaths( std::vector<std::vector<double> > &_origPath,
+		  std::vector<std::vector<double> > _addedPath );
+
+  std::vector<std::vector<double> > getPointsAtLeastAsFarAs( PFDistanceField* _df, double _thresh );
+
+  std::vector<std::vector<double> > getNearestPointFromSet( PFDistanceField* _df,
+							    std::vector<std::vector<double> > _set,
+							    std::vector<double> &point,
+							    double _thresh ); 
+
   std::vector<std::vector<double> > getPointsAsFarAs( PFDistanceField* _df, 
 						      double _thresh, 
 						      double _tol = 0.005 );
 
+  std::vector<std::vector<double> > getPointsAsFarAsFromSet( PFDistanceField* _df,
+							     std::vector<std::vector<double> > _set,
+							     double _thresh, 
+							     double _tol );
+  
   // Visualization
   void visualizePath( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 		      std::vector<std::vector<double> > _path,
 		      bool _viewObstacles = false,
 		      int _r = 0, int _g = 0, int _b = 255 );
+
+  void visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+		       std::vector<std::vector<std::vector<double> > > _path,
+		       bool _viewObstacles = false );
 
  private:
 
@@ -142,6 +168,8 @@ class DiversePaths {
   int *mHT;
   std::vector<State3D*> mOpenSet;
 
+  // Diverse paths variables
+  int mNumPaths;
 };
 
 ////////////////// INLINE FUNCTIONS ////////////////////

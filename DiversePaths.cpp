@@ -43,6 +43,72 @@ DiversePaths::~DiversePaths() {
 }
 
 /**
+ * @function getDiversePaths
+ */
+std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( std::vector<double> _start,
+									       std::vector<double> _goal,
+									       int _numPaths ) {
+  mNumPaths = _numPaths;
+  std::vector<std::vector<std::vector<double> > > paths;
+  std::vector<std::vector<double> > path;
+  std::vector<std::vector<double> > jointPaths;
+
+  //-- 2. Get Dijkstra
+  setGoal( _goal );
+  runDijkstra();
+
+  //-- 1. Get the first path
+  getShortestPath( _start, path );
+  // Save it
+  printf("[0] Saving path of size %d \n", path.size() );
+  paths.push_back( path );
+
+  // Join it
+  joinPaths( jointPaths, path );
+
+  //-- Repeat this:
+  for( int i = 1; i < mNumPaths; ++i ) {
+
+    //-- 2. Create DF to joint paths
+    PFDistanceField* dpp;
+    dpp = createDfToPathSet( jointPaths );
+
+    //-- 3. Get points that are both far from obstacles and paths
+    std::vector<std::vector<double> > pointsObst;
+    double obstDist = 0.1;
+    pointsObst = getPointsAtLeastAsFarAs( mDf, obstDist );
+    
+    std::vector<std::vector<double> > pointsPath;
+    std::vector<double> thePoint;
+    double pathDist = 0.2;
+    pointsPath = getNearestPointFromSet( dpp, pointsObst, thePoint, pathDist );
+    
+    //-- 4. Find path with thePoint in the middle
+    std::vector<std::vector<double> > pathSM; // Start - Middle
+    std::vector<std::vector<double> > pathMG; // Middle - Goal
+    runAstar( _start, thePoint, pathSM );
+    //runAstar( thePoint, _goal, pathMG );
+    getShortestPath( thePoint, pathMG );
+    
+    // Make them together properly
+    path.resize(0);
+    pathSM.pop_back();
+    joinPaths( path, pathSM );
+    joinPaths( path, pathMG );
+
+    // Join with previous path
+    joinPaths( jointPaths, path );
+    
+    // Save it
+    paths.push_back( path );
+    printf(" [%d] Adding a path of %d \n points \n", i, path.size() );
+  }
+
+  return paths;
+}
+
+
+/**
  * @function setGoal
  * @brief Set world goal
  */
@@ -148,12 +214,8 @@ bool DiversePaths::runDijkstra() {
  * @function runAstar
  */
 bool DiversePaths::runAstar(std::vector<double> _start, 
+			    std::vector<double> _goal,
 			    std::vector<std::vector<double> > &_path ) {
-
-  // Check goal
-  if( mGoal.empty() ) {
-    return false;
-  }
 
   // Check start
   std::vector<int> start(3);
@@ -164,6 +226,17 @@ bool DiversePaths::runAstar(std::vector<double> _start,
 
   if( !mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] ) ) {
     printf( "[runAstar] No valid start position  \n" );
+  }
+
+  // Check goal
+  std::vector<int> goal(3);
+  if( _goal.size() < 3 ) {
+    printf( "[runAstar] Error in goal, need 3-element vector \n " );
+    return false;
+  }
+
+  if( !mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] ) ) {
+    printf( "[runAstar] No valid goal position  \n" );
   }
 
   // Run
@@ -179,7 +252,7 @@ bool DiversePaths::runAstar(std::vector<double> _start,
   create3DStateSpace( &mS3D );
 
   // Search
-  b = searchOneToOnePath( start, mGoal[0], _path );
+  b = searchOneToOnePath( start, goal, _path );
 
   // Cleanup before going out
   delete3DStateSpace( &mS3D );
@@ -236,7 +309,6 @@ bool DiversePaths::searchOneToOnePath( std::vector<int> _start,
     }
     //-- Check if it is the goal
     if( u->x == _goal[0] && u->y == _goal[1] && u->z == _goal[2] ) {
-      printf("[searchOneToOnePath] Found a path. Tracing it \n");
       TracePath( _start, _goal, _path );
       break;
     }
@@ -444,10 +516,13 @@ bool DiversePaths::TracePath( std::vector<int> _start,
   std::vector<int> next_state(3,0);
   int newx; int newy; int newz;
 
+  std::vector<std::vector<double> > backPath;
+
   // Make sure the while loop eventually stops
   int max_path_length = mDimX*mDimY;
-
+  
   _path.resize(0);
+  backPath.resize(0);
   next_state[0] = _goal[0];
   next_state[1] = _goal[1];
   next_state[2] = _goal[2];
@@ -455,8 +530,8 @@ bool DiversePaths::TracePath( std::vector<int> _start,
   // Push the very first
   std::vector<double> p(3);
   mDf->gridToWorld( next_state[0], next_state[1], next_state[2], p[0], p[1], p[2] );
-  _path.push_back( p );
-
+  backPath.push_back( p );
+  
   while(  (next_state[0] != _start[0] || next_state[1] != _start[1] || next_state[2] != _start[2] )
 	  && counter < max_path_length ) {
     state = next_state;
@@ -500,7 +575,7 @@ bool DiversePaths::TracePath( std::vector<int> _start,
       }
     } // for
     mDf->gridToWorld( next_state[0], next_state[1], next_state[2], p[0], p[1], p[2] );
-    _path.push_back( p );
+    backPath.push_back( p );
     counter++;
   } // while
 
@@ -509,6 +584,12 @@ bool DiversePaths::TracePath( std::vector<int> _start,
     printf( "[getShortestPath] Unable to find path to goal. Exiting! \n" );
     _path.clear();
     return false;
+  }
+
+  // Put path in correct order
+  int n = backPath.size();
+  for( int i = 0; i < n; ++i ) {
+    _path.push_back( backPath[n - 1 - i] );
   }
 
   return true;
@@ -748,7 +829,6 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
 bool DiversePaths::getShortestPath( std::vector<double> _start,
 				    std::vector< std::vector<double> > &_path ) {
 
-
   std::vector<int> start(3);
   std::vector<std::vector<int> > cellPath;
   std::vector<double> p(3);
@@ -931,6 +1011,78 @@ PFDistanceField* DiversePaths::createDfToPathSet( std::vector< std::vector<doubl
 }
 
 /**
+ * @function joinPaths
+ */
+void DiversePaths::joinPaths( std::vector<std::vector<double> > &_origPath,
+			      std::vector<std::vector<double> > _addedPath ) {
+  
+  for( int i = 0; i < _addedPath.size(); ++i ) {
+    _origPath.push_back( _addedPath[i] );
+  }
+
+}
+
+/**
+ * @function getPoinsAtLeastAsFarAs
+ * @brief Get points that are at least _thresh away from the set point in _df
+ */
+std::vector<std::vector<double> > DiversePaths::getPointsAtLeastAsFarAs( PFDistanceField* _df, 
+									 double _thresh ) {
+
+  double dist;
+  std::vector<std::vector<double> > points;
+  std::vector<double> p(3);
+  
+  for( int x = 0; x < mDf->getNumCells( PFDistanceField::DIM_X ); ++x ) {
+    for( int y = 0; y < mDf->getNumCells( PFDistanceField::DIM_Y ); ++y ) {
+      for( int z = 0; z < mDf->getNumCells( PFDistanceField::DIM_Z); ++z ) {
+	dist = _df->getDistanceFromCell( x, y, z );
+	
+	if( dist >= _thresh ) {
+	  _df->gridToWorld( x, y, z, p[0], p[1], p[2] );
+	  points.push_back( p );
+	}
+
+      }
+    }
+  }
+  
+  return points;
+}
+
+/**
+ * @function getNearestPointFromSet
+ */
+std::vector<std::vector<double> > DiversePaths::getNearestPointFromSet( PFDistanceField* _df,
+									std::vector<std::vector<double> > _set,
+									std::vector<double> &_point,
+									double _thresh ) {
+  double dist;
+  std::vector<std::vector<double> > points;
+  std::vector<double> p(3);
+  int x; int y; int z;
+
+  double minDist = INFINITE_COST;
+
+  for( int i = 0; i < _set.size(); ++i ) {
+    _df->worldToGrid( _set[i][0], _set[i][1], _set[i][2], x, y, z );
+    dist = _df->getDistanceFromCell( x, y, z );
+    
+    if( dist >= _thresh  ) {
+      points.push_back( _set[i] );
+
+      if( dist < minDist ) {
+	minDist = dist;
+	_point = _set[i];
+      }
+    }
+    
+  }
+
+  return points;
+}
+
+/**
  * @function getPointsAsFarAs
  * @brief Get points _thresh + _tol < d < _thresh - _tol away from "object" ( path / obstacle )
  */
@@ -958,6 +1110,32 @@ std::vector<std::vector<double> > DiversePaths::getPointsAsFarAs( PFDistanceFiel
   return points;
 }
 
+
+/**
+ * @function getPointsAsFarAsFromSet
+ * @brief Get points _thresh + _tol < d < _thresh - _tol away from "object" ( path / obstacle )
+ */
+std::vector<std::vector<double> > DiversePaths::getPointsAsFarAsFromSet( PFDistanceField* _df,
+									 std::vector<std::vector<double> > _set,
+									 double _thresh, 
+									 double _tol ) {
+  double dist;
+  std::vector<std::vector<double> > points;
+  std::vector<double> p(3);
+  int x; int y; int z;
+
+  for( int i = 0; i < _set.size(); ++i ) {
+    _df->worldToGrid( _set[i][0], _set[i][1], _set[i][2], x, y, z );
+    dist = _df->getDistanceFromCell( x, y, z );
+    
+    if( dist >= _thresh - _tol && dist <= _thresh + _tol ) {
+      points.push_back( _set[i] );
+    }
+    
+  }
+
+  return points;
+}
 /////////////////////////// VISUALIZATION FUNCTIONS //////////////////////////////////////////
 
 
@@ -969,11 +1147,10 @@ void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisua
 				  bool _viewObstacles,
 				  int _r, int _g, int _b ) {
 
-
-  //-- Get counters ready
-  //reset_PCL_Tools_counters();
   
   //-- View paths
+  printf("Viewing path from (%f %f %f) to (%f %f %f ) \n", _path[0][0], _path[0][1], _path[0][2],
+	 _path[_path.size() - 1][0], _path[_path.size() - 1][1], _path[_path.size() - 1][2]);
   viewPath( _path, _viewer, _r, _g, _b );
   viewBall( _path[0][0], _path[0][1], _path[0][2], 0.02, _viewer );
   viewBall( _path[_path.size() - 1][0], 
@@ -998,4 +1175,46 @@ void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisua
     viewPCD( obstacleCloud, _viewer, obsR, obsG, obsB );
   }
 
+}
+
+
+/**
+ * @function visualizePaths
+ */
+void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+				   std::vector<std::vector<std::vector<double> > > _paths,
+				   bool _viewObstacles ) {
+
+
+  //-- Get counters ready
+  //reset_PCL_Tools_counters();
+  srand( time(NULL) );
+  int r; int g; int b;
+
+
+  for( int i = 0; i < _paths.size(); ++i ) {
+    r = (int) ( rand() % 255 );
+    g = (int) ( rand() % 255 );
+    b = (int) ( rand() % 255 );
+    visualizePath( _viewer, _paths[i], false, r, g, b ); 
+  }
+
+  if( _viewObstacles ) {
+    
+    // Visualize obstacles (or not)
+    int obsR; int obsG; int obsB;
+    obsR = 0; obsG = 255; obsB = 0;
+    
+    //-- Get obstacles
+    std::vector<Eigen::Vector3d> obstacles;
+    mDf->getPointsFromField( obstacles );
+    
+    //-- Put them in PCD
+    pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud = writePCD( obstacles );
+    
+    
+    viewPCD( obstacleCloud, _viewer, obsR, obsG, obsB );
+  }
+
+  
 }

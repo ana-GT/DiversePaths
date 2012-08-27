@@ -30,64 +30,30 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.2, 0.2, 0.3, 0.24, 0.24, 0.3 );
   pf.addBox( 0.1, 0.1, 0.2, 0.4, 0.5, 0.4 );
 
-  // Settings BFS
-  int cost = 1; int radius = 5;
-  int numPaths = 3;
-  double alpha = 0.1;
+  // Settings parameters
+  int cost = 1; int radius = 3;
+  int numPaths = 10;
 
   DiversePaths dp( &pf, radius, cost );
 
-  // Search
+  // Set goal and start
   std::vector<double> goal(3);
   goal[0] = 0.65; goal[1] = 0.4; goal[2] = 0.6;
-  dp.setGoal( goal );
-
-  printf(" Run Dijkstra \n");  
-  time_t ts; time_t tf; double dt;
-  ts = clock();
-  dp.runDijkstra();
-  tf = clock();
-  dt = (double)(tf - ts) / CLOCKS_PER_SEC;
-  printf("End Dijkstra in %f seconds \n", dt );
-
-  // Get one path
-  std::vector<std::vector<double> > pathA;
-  std::vector<std::vector<double> > pathD;
   std::vector<double> start(3);
   start[0] = 0.16; start[1] = 0.1; start[2] = 0.1;
 
-  dp.getShortestPath( start, pathD );
-  printf("End of run. Path D size: %d \n", pathD.size() );
+  // Paths
+  std::vector<std::vector<std::vector<double> > > paths;
 
-  printf("Run Astar \n");
-  dp.runAstar( start, pathA );
-  printf("End of run. Path A size: %d \n", pathA.size() );
-
-  // Get DF from path
-  printf("Create DF to Path Set \n");
-  PFDistanceField* dpp;
-  dpp = dp.createDfToPathSet( pathA );
-  printf("End of Create DF to Path Set \n");
-
-  // Get points as far as
-  std::vector<std::vector<double> > points;
-  double thresh = 0.1; double tol = 0.005;
-  points = dp.getPointsAsFarAs( dpp, 0.4, tol );
-  printf("Got %d points as far as : %f with tol: %f \n", points.size(), thresh, tol );
-  
-  std::vector<std::vector<double> > pointsObst;
-  pointsObst = dp.getPointsAsFarAs( &pf, thresh, tol );
-  printf("Got %d points as far as : %f with tol: %f from obstacle \n", pointsObst.size(), thresh, tol );
+  paths = dp.getDiversePaths( start, goal, numPaths );
 
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
 
   // View the path
   reset_PCL_Tools_counters();
-  dp.visualizePath( viewer, pathD, true, 0, 0, 255 );
-  dp.visualizePath( viewer, pathA, true, 255, 255, 0 );
-  viewPoints( pointsObst, viewer, 0, 0, 255 );
-  viewPoints( points, viewer, 255, 0, 255 );
+  dp.visualizePaths( viewer, paths, true );
+  // viewPoints( points, viewer, 255, 0, 255 );
 
 
   // Loop
