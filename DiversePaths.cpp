@@ -53,12 +53,15 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
   std::vector<std::vector<double> > path;
   std::vector<std::vector<double> > jointPaths;
 
+  std::vector<int> dGoal;
+  std::vector<int> dStart;
+
   //-- 2. Get Dijkstra
-  setGoal( _goal );
-  runDijkstra();
+  runDijkstra( _goal, dGoal );
+  runDijkstra( _start, dStart );
 
   //-- 1. Get the first path
-  getShortestPath( _start, path );
+  getShortestPath( _start, _goal,  path, dGoal );
   // Save it
   printf("[0] Saving path of size %d \n", path.size() );
   paths.push_back( path );
@@ -86,9 +89,8 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
     //-- 4. Find path with thePoint in the middle
     std::vector<std::vector<double> > pathSM; // Start - Middle
     std::vector<std::vector<double> > pathMG; // Middle - Goal
-    runAstar( _start, thePoint, pathSM );
-    //runAstar( thePoint, _goal, pathMG );
-    getShortestPath( thePoint, pathMG );
+    getShortestPath( thePoint, _start, pathSM, dStart, true );
+    getShortestPath( thePoint, _goal, pathMG, dGoal, false );
     
     // Make them together properly
     path.resize(0);
@@ -193,22 +195,244 @@ bool DiversePaths::setGoals( std::vector<std::vector<int> > _goals ) {
  * @function runDijkstra
  * @brief
  */
-bool DiversePaths::runDijkstra() {
+bool DiversePaths::runDijkstra( std::vector<double> _goal,
+				std::vector<int> &_dist ) {
 
-  if( mGoal.empty() ) {
-    printf( " [runDijkstra] Goal location is not set. Exiting \n" );
+  if( !setGoal(_goal) ) {
     return false;
   }
 
   mDistLength = (mDimX - 1) + (mDimY - 1)*(mDimX) + (mDimZ - 1)*(mDimX)*(mDimY) + 1;
-  mDist.resize( mDistLength );
+  _dist.resize( mDistLength );
   State3D*** stateSpace3D;
   create3DStateSpace( &stateSpace3D );
-  searchOneSourceAllPaths( stateSpace3D );
+  searchOneSourceAllPaths( stateSpace3D, _dist );
   delete3DStateSpace( &stateSpace3D );
 
   return true;
 }
+
+/**
+ * @function searchOneSourceAllPaths
+ */
+void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace,
+					    std::vector<int> &_dist ) {
+  
+  State3D* u;
+  int newx; int newy; int newz;
+  int x; int y; int z;
+  unsigned int g_temp;
+  
+  //-- Create a queue
+  std::queue< State3D* > mQ;
+
+  //-- Initialize all states to INF
+  for( int x = 0; x < mDimX; ++x ) {
+    for( int y = 0; y < mDimY; ++y ) {
+      for( int z = 0; z < mDimZ; ++z ) {
+	_dist[ xyzToIndex( x, y, z )  ] = INFINITE_COST;
+	reInitializeState3D( &_stateSpace[x][y][z] );
+      }
+    }
+  }
+  
+  //-- Initialize goals to zero cost
+  for( unsigned int i = 0; i < mGoal.size(); ++i ) {
+    _stateSpace[ mGoal[i][0] ][ mGoal[i][1] ][ mGoal[i][2] ].g = 0;
+    mQ.push( &_stateSpace[ mGoal[i][0] ][ mGoal[i][1] ][ mGoal[i][2] ] );
+  }
+
+  //-- Expand all of the states
+  while( (int) mQ.size() > 0 ) {
+    
+    // Get the state to expand
+    u = mQ.front();
+
+    mQ.pop();
+
+    // If the state is already closed
+    if( u->iterationclosed == 1 ) {
+      continue;
+    }
+
+    // Mark it as closed
+    u->iterationclosed = 1;
+
+    // Set the  corresponding distances to the goal
+    _dist[ xyzToIndex( u->x, u->y, u->z ) ] = u->g;
+
+    // Iterate through neighbors
+    for( int d = 0; d < DIRECTIONS3D; ++d ) {
+      newx = u->x + NX[d];
+      newy = u->y + NY[d];
+      newz = u->z + NZ[d];
+      
+      // Check neighbor is no obstacle and inside the map
+      if( newx < 0 || newx >= mDimX ||
+	  newy < 0 || newy >= mDimY ||
+	  newz < 0 || newz >= mDimZ ) {
+	continue;
+      }
+      if( !isValidCell( newx, newy, newz ) ) {
+	continue;
+      }
+     
+      if( _stateSpace[newx][newy][newz].iterationclosed == 0 ) {
+	// Insert into the stack
+	mQ.push( &_stateSpace[newx][newy][newz] );
+	// Set the g-value
+	if( u->x != newx && u->y != newy && u->z != newz ) {
+	  g_temp = u->g + mCost3Move;
+	}
+	else if( ( u->y != newy && u->z != newz ) ||
+		 ( u->x != newx && u->z != newz ) ||
+		 ( u->x != newx && u->y != newy ) ){
+	  g_temp = u->g + mCost2Move;
+	}
+	else {
+	  g_temp = u->g + mCost1Move;
+	}
+
+	if( _stateSpace[newx][newy][newz].g > g_temp ) {
+	  _stateSpace[newx][newy][newz].g = g_temp;
+	}
+      }
+ 
+    } // end for DIRECTIONS3D
+
+  } // end while
+
+}
+
+
+
+/**
+ * @function getShortestPaths
+ * @brief
+ */
+bool DiversePaths::getShortestPath( std::vector<int> _start,
+				    std::vector< std::vector<int> > &_path,
+				    std::vector<int> _dist ) {
+
+  int val = 0;
+  int counter = 0;
+  int min_val = INFINITE_COST;
+
+  std::vector<int> state(3,0);
+  std::vector<int> next_state(3,0);
+  int newx; int newy; int newz;
+
+  // Make sure the while loop eventually stops
+  int max_path_length = mDimX*mDimY;
+
+  _path.resize(0);
+  next_state[0] = _start[0];
+  next_state[1] = _start[1];
+  next_state[2] = _start[2];
+
+  // Push first element
+  _path.push_back( next_state );
+
+  // Iterate until you get to the goal
+  while( !isGoal( next_state ) || counter > max_path_length ) {
+    state = next_state;
+    min_val = INFINITE_COST;
+
+    // Iterate through neighbors
+    for( int d = 0; d < DIRECTIONS3D; ++d ) {
+      newx = state[0] + NX[d];
+      newy = state[1] + NY[d];
+      newz = state[2] + NZ[d];
+
+      // Check cell is inside the map and with no obstacles
+      if( newx < 0 || newx >= mDimX ||
+	  newy < 0 || newy >= mDimY ||
+	  newz < 0 || newz >= mDimZ ) {
+	continue;
+      }
+
+      val = _dist[ xyzToIndex( newx, newy, newz ) ];
+      if( val >= INFINITE_COST ) {
+	continue;
+      }
+
+      if( state[0] != newx && state[1] != newy && state[2] != newz ) {
+	val = val + mCost3Move;
+      }
+      else if( ( state[1] != newy && state[2] != newz ) ||
+	       ( state[0] != newx && state[2] != newz ) ||
+	       ( state[0] != newx && state[1] != newy ) ) {
+	val = val + mCost2Move;
+      }
+      else {
+	val = val + mCost1Move;
+      }
+
+      if( val < min_val ) {
+	min_val = val;
+	next_state[0] = newx;
+	next_state[1] = newy;
+	next_state[2] = newz;
+      }
+    } // for
+    _path.push_back( next_state );
+    counter++;
+  } // while
+
+  // Unable to find paths
+  if( counter > max_path_length ) {
+    printf( "[getShortestPath] Unable to find path to goal. Exiting! \n" );
+    _path.clear();
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * @function getShortestPath
+ * @brief
+ */
+bool DiversePaths::getShortestPath( std::vector<double> _start,
+				    std::vector<double> _goal,
+				    std::vector< std::vector<double> > &_path,
+				    std::vector<int> _dist,
+				    bool _invert ) {
+
+  if( !setGoal( _goal ) ) {
+    return false;
+  }
+
+  std::vector<int> start(3);
+  std::vector<std::vector<int> > cellPath;
+  std::vector<double> p(3);
+
+  _path.clear();
+
+  mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
+
+  if( !getShortestPath( start, cellPath, _dist ) ) {
+    printf( "[getShortestPath] Did not find a path. Exiting! \n" );
+    return false;
+  }
+
+  int n = cellPath.size();
+
+  for( int i = 0; i < n; ++i ) {
+    if( _invert == false ) {
+      mDf->gridToWorld( cellPath[i][0], cellPath[i][1], cellPath[i][2],
+			p[0], p[1], p[2] );
+    }
+    else {
+      mDf->gridToWorld( cellPath[n-1-i][0], cellPath[n-1-i][1], cellPath[n-1-i][2],
+			p[0], p[1], p[2] );
+    }
+    _path.push_back( p );
+  }
+
+  return true;
+}
+
 
 /**
  * @function runAstar
@@ -647,208 +871,6 @@ void DiversePaths::UpdateLowerOpenSet( State3D* _u ) {
   
 }
 
-/**
- * @function searchOneSourceAllPaths
- */
-void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace ) {
-  
-  State3D* u;
-  int newx; int newy; int newz;
-  int x; int y; int z;
-  unsigned int g_temp;
-  
-  //-- Create a queue
-  std::queue< State3D* > mQ;
-
-  //-- Initialize all states to INF
-  for( int x = 0; x < mDimX; ++x ) {
-    for( int y = 0; y < mDimY; ++y ) {
-      for( int z = 0; z < mDimZ; ++z ) {
-	mDist[ xyzToIndex( x, y, z )  ] = INFINITE_COST;
-	reInitializeState3D( &_stateSpace[x][y][z] );
-      }
-    }
-  }
-  
-  //-- Initialize goals to zero cost
-  for( unsigned int i = 0; i < mGoal.size(); ++i ) {
-    _stateSpace[ mGoal[i][0] ][ mGoal[i][1] ][ mGoal[i][2] ].g = 0;
-    mQ.push( &_stateSpace[ mGoal[i][0] ][ mGoal[i][1] ][ mGoal[i][2] ] );
-  }
-
-  //-- Expand all of the states
-  while( (int) mQ.size() > 0 ) {
-    
-    // Get the state to expand
-    u = mQ.front();
-
-    mQ.pop();
-
-    // If the state is already closed
-    if( u->iterationclosed == 1 ) {
-      continue;
-    }
-
-    // Mark it as closed
-    u->iterationclosed = 1;
-
-    // Set the  corresponding distances to the goal
-    mDist[ xyzToIndex( u->x, u->y, u->z ) ] = u->g;
-
-    // Iterate through neighbors
-    for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = u->x + NX[d];
-      newy = u->y + NY[d];
-      newz = u->z + NZ[d];
-      
-      // Check neighbor is no obstacle and inside the map
-      if( newx < 0 || newx >= mDimX ||
-	  newy < 0 || newy >= mDimY ||
-	  newz < 0 || newz >= mDimZ ) {
-	continue;
-      }
-      if( !isValidCell( newx, newy, newz ) ) {
-	continue;
-      }
-     
-      if( _stateSpace[newx][newy][newz].iterationclosed == 0 ) {
-	// Insert into the stack
-	mQ.push( &_stateSpace[newx][newy][newz] );
-	// Set the g-value
-	if( u->x != newx && u->y != newy && u->z != newz ) {
-	  g_temp = u->g + mCost3Move;
-	}
-	else if( ( u->y != newy && u->z != newz ) ||
-		 ( u->x != newx && u->z != newz ) ||
-		 ( u->x != newx && u->y != newy ) ){
-	  g_temp = u->g + mCost2Move;
-	}
-	else {
-	  g_temp = u->g + mCost1Move;
-	}
-
-	if( _stateSpace[newx][newy][newz].g > g_temp ) {
-	  _stateSpace[newx][newy][newz].g = g_temp;
-	}
-      }
- 
-    } // end for DIRECTIONS3D
-
-  } // end while
-
-}
-
-
-
-/**
- * @function getShortestPaths
- * @brief
- */
-bool DiversePaths::getShortestPath( std::vector<int> _start,
-				    std::vector< std::vector<int> > &_path ) {
-
-  int val = 0;
-  int counter = 0;
-  int min_val = INFINITE_COST;
-
-  std::vector<int> state(3,0);
-  std::vector<int> next_state(3,0);
-  int newx; int newy; int newz;
-
-  // Make sure the while loop eventually stops
-  int max_path_length = mDimX*mDimY;
-
-  _path.resize(0);
-  next_state[0] = _start[0];
-  next_state[1] = _start[1];
-  next_state[2] = _start[2];
-
-  // Push first element
-  _path.push_back( next_state );
-
-  // Iterate until you get to the goal
-  while( !isGoal( next_state ) || counter > max_path_length ) {
-    state = next_state;
-    min_val = INFINITE_COST;
-
-    // Iterate through neighbors
-    for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = state[0] + NX[d];
-      newy = state[1] + NY[d];
-      newz = state[2] + NZ[d];
-
-      // Check cell is inside the map and with no obstacles
-      if( newx < 0 || newx >= mDimX ||
-	  newy < 0 || newy >= mDimY ||
-	  newz < 0 || newz >= mDimZ ) {
-	continue;
-      }
-
-      val = mDist[ xyzToIndex( newx, newy, newz ) ];
-      if( val >= INFINITE_COST ) {
-	continue;
-      }
-
-      if( state[0] != newx && state[1] != newy && state[2] != newz ) {
-	val = val + mCost3Move;
-      }
-      else if( ( state[1] != newy && state[2] != newz ) ||
-	       ( state[0] != newx && state[2] != newz ) ||
-	       ( state[0] != newx && state[1] != newy ) ) {
-	val = val + mCost2Move;
-      }
-      else {
-	val = val + mCost1Move;
-      }
-
-      if( val < min_val ) {
-	min_val = val;
-	next_state[0] = newx;
-	next_state[1] = newy;
-	next_state[2] = newz;
-      }
-    } // for
-    _path.push_back( next_state );
-    counter++;
-  } // while
-
-  // Unable to find paths
-  if( counter > max_path_length ) {
-    printf( "[getShortestPath] Unable to find path to goal. Exiting! \n" );
-    _path.clear();
-    return false;
-  }
-  
-  return true;
-}
-
-/**
- * @function getShortestPath
- * @brief
- */
-bool DiversePaths::getShortestPath( std::vector<double> _start,
-				    std::vector< std::vector<double> > &_path ) {
-
-  std::vector<int> start(3);
-  std::vector<std::vector<int> > cellPath;
-  std::vector<double> p(3);
-
-  _path.clear();
-  mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
-
-  if( !getShortestPath( start, cellPath ) ) {
-    printf( "[getShortestPath] Did not find a path. Exiting! \n" );
-    return false;
-  }
-
-  for( int i = 0; i < cellPath.size(); ++i ) {
-    mDf->gridToWorld( cellPath[i][0], cellPath[i][1], cellPath[i][2],
-		      p[0], p[1], p[2] );
-    _path.push_back( p );
-  }
-
-  return true;
-}
 
 /**
  * @function setRadius

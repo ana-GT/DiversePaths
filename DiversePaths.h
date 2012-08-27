@@ -71,19 +71,29 @@ class DiversePaths {
   bool setGoal( std::vector<double> _goal );
   bool setGoal( std::vector<int> _goal );
   bool setGoals( std::vector<std::vector<int> > _goals );
-  bool runDijkstra();
+
+  bool runDijkstra( std::vector<double> _goal, 
+		    std::vector<int> &_dist );
+  void searchOneSourceAllPaths( State3D*** _stateSpace,
+				std::vector<int> &_dist );
+  bool getShortestPath( std::vector<int> _start,
+			std::vector< std::vector<int> > &_path,
+			std::vector<int> _dist );
+  bool getShortestPath( std::vector<double> _start,
+			std::vector<double> _goal,
+			std::vector< std::vector<double> > &_path,
+			std::vector<int> _dist,
+			bool _invert = false );
+
   bool runAstar(std::vector<double> _start,
 		std::vector<double> _goal,
 		std::vector<std::vector<double> > &_path );
   std::vector<std::vector<double> > runAstar(std::vector<double> _start );
-  void searchOneSourceAllPaths( State3D*** _stateSpace );
+
   bool searchOneToOnePath( std::vector<int> _start,
 			   std::vector<int> _goal,
 			   std::vector<std::vector<double> > &_path );
-  bool getShortestPath( std::vector<int> _start,
-			std::vector< std::vector<int> > &_path );
-  bool getShortestPath( std::vector<double> _start,
-			std::vector< std::vector<double> > &_path );
+
   void setRadius( double _r );
   int getRadiusCells();
   void reInitializeState3D( State3D* _state );
