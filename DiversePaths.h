@@ -68,6 +68,11 @@ class DiversePaths {
 								   int _numPaths,
 								   std::vector<std::vector<double> > &_midPoints );
 
+  std::vector<std::vector<double> > getMidPoints( std::vector<double> _start,
+						  std::vector<double> _goal,
+						  std::vector<int> &_dStart,
+						  std::vector<int> &_dGoal );
+
   // Search functions
   bool setGoal( std::vector<double> _goal );
   bool setGoal( std::vector<int> _goal );

@@ -11,6 +11,36 @@ const int DiversePaths::NY[DIRECTIONS3D] = {  0, 0, -1, 0, 1,  0,  0,  1,  0, -1
 const int DiversePaths::NZ[DIRECTIONS3D] = { -1, 1,  0, 0, 0,  0, -1, -1, -1, -1, 1, 1,  1,  1,  0, 0,  0,  0,   1, 1,1, 1,-1,-1,-1,-1 };
 
 /**
+ * @function getMidPoints
+ */
+std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double> _start,
+							      std::vector<double> _goal,
+							      std::vector<int> &_dStart,
+							      std::vector<int> &_dGoal ) {
+
+  //-- 2. Get Dijkstra
+  runDijkstra( _goal, _dGoal );
+  runDijkstra( _start, _dStart );
+  
+  std::vector<std::vector<double> > midPoints;
+  std::vector<double> p(3);
+  
+  for( int x = 0; x < mDimX; ++x ) {
+    for( int y = 0; y < mDimY; ++y ) {
+      for( int z = 0; z < mDimZ; ++z ) {
+	int ind = xyzToIndex( x, y, z );
+	if( _dStart[ind] == _dGoal[ind] && _dStart[ind]!= INFINITE_COST && _dGoal[ind] != INFINITE_COST ) {
+	  mDf->gridToWorld( x, y, z, p[0], p[1], p[2] );
+	  midPoints.push_back( p );
+	}
+      }
+    }
+  }
+
+  return midPoints;
+}
+
+/**
  * @function DiversePaths
  * @brief Constructor
  */
@@ -73,6 +103,10 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
   // Join it
   joinPaths( jointPaths, path );
 
+
+  std::vector<std::vector<double> > pointsPath;
+  std::vector<double> thePoint;
+
   //-- Repeat this:
   for( int i = 1; i < mNumPaths; ++i ) {
 
@@ -83,13 +117,15 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
     //-- 3. Get points that are both far from obstacles and paths
     std::vector<std::vector<double> > pointsObst;
     double obstDist = 0.1;
-    pointsObst = getPointsAtLeastAsFarAs( mDf, obstDist );
-    
-    std::vector<std::vector<double> > pointsPath;
-    std::vector<double> thePoint;
+    double obstTol = 0.005;
+    //pointsObst = getPointsAtLeastAsFarAs( mDf, obstDist );
+    pointsObst = getPointsAsFarAs( mDf, obstDist, obstTol );
+
     double pathDist = 0.2;
+    double pathTol = 0.005;
     pointsPath = getNearestPointFromSet( dpp, pointsObst, thePoint, pathDist );
-    
+    //pointsPath = getPointsAsFarAsFromSet( dpp, pointsObst, pathDist, pathTol );    
+
     thePoint = pointsPath[ pointsPath.size() / 2  ];
 
     //-- 4. Find path with thePoint in the middle
@@ -115,6 +151,30 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
     printf(" [%d] Adding a path of %d \n points \n", i, path.size() );
   }
 
+  /////////// PUT VISUALIZATION INSIDE TO DEBUG ///////////////////////////
+  // Create viewer
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
+
+  // View the path
+  reset_PCL_Tools_counters();
+  visualizePaths( viewer, paths, true );
+
+  // View balls midpoints
+  for( int i = 0; i < _midPoints.size(); ++i ) {
+    viewBall( _midPoints[i][0], _midPoints[i][1], _midPoints[i][2],
+	      0.025, viewer, 0, 0, 255 );
+  }
+
+  // Visualize points obst + paths away
+  viewPoints( pointsPath, viewer, 255, 0 , 255 ); 
+
+  // Loop
+  while( !viewer->wasStopped() ) {
+    viewer->spinOnce(100);
+    boost::this_thread::sleep( boost::posix_time::microseconds(100000));
+    }
+
+  //////////// END VISUALIZATION INSIDE /////////////////////////////////////
   return paths;
 }
 
