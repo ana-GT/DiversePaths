@@ -44,24 +44,30 @@ int main( int argc, char* argv[] ) {
 
   // Paths
   std::vector<std::vector<double> > midPoints;
+  std::vector<std::vector<std::vector<double> > > paths;
   std::vector<int> dStart;
   std::vector<int> dGoal;
-  midPoints = dp.getMidPoints( start, goal, dStart, dGoal );
-  
+
+  // Get paths
+  paths = dp.getDiversePaths2( start, goal, numPaths, midPoints );
+  printf( "Num points: %d \n", midPoints.size() );
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
 
   // View the path
   reset_PCL_Tools_counters();
-  /*  dp.visualizePaths( viewer, paths, true );
+  
+  dp.visualizePaths( viewer, paths, true );
 
   // View balls
+  /*
   for( int i = 0; i < midPoints.size(); ++i ) {
     viewBall( midPoints[i][0], midPoints[i][1], midPoints[i][2],
 	      0.025, viewer, 0, 0, 255 );
-  }
-  */
+	      } */
+  
   viewPoints( midPoints, viewer, 255,0,255 );
+
   // Loop
   while( !viewer->wasStopped() ) {
     viewer->spinOnce(100);

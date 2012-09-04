@@ -16,7 +16,8 @@ const int DiversePaths::NZ[DIRECTIONS3D] = { -1, 1,  0, 0, 0,  0, -1, -1, -1, -1
 std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double> _start,
 							      std::vector<double> _goal,
 							      std::vector<int> &_dStart,
-							      std::vector<int> &_dGoal ) {
+							      std::vector<int> &_dGoal,
+							      int _length ) {
 
   //-- 2. Get Dijkstra
   runDijkstra( _goal, _dGoal );
@@ -28,14 +29,22 @@ std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double
   for( int x = 0; x < mDimX; ++x ) {
     for( int y = 0; y < mDimY; ++y ) {
       for( int z = 0; z < mDimZ; ++z ) {
+
 	int ind = xyzToIndex( x, y, z );
-	if( _dStart[ind] == _dGoal[ind] && _dStart[ind]!= INFINITE_COST && _dGoal[ind] != INFINITE_COST ) {
-	  mDf->gridToWorld( x, y, z, p[0], p[1], p[2] );
-	  midPoints.push_back( p );
-	}
-      }
-    }
-  }
+	if( _dStart[ind] != INFINITE_COST ) {
+	  if( _dGoal[ind] != INFINITE_COST ) {	    
+	    int ds = _dStart[ind];
+	    int dg = _dGoal[ind];
+	    if( ds < dg + 2 && ds > dg - 2 && ds + dg < (2*_length) ) {
+	      mDf->gridToWorld( x, y, z, p[0], p[1], p[2] );
+	      midPoints.push_back( p );
+	    }
+	  } // if _dGoal[ind] != INF
+	} // if _dStart[ind]  != INF
+
+      } // for z
+    } // for y
+  } // for x
 
   return midPoints;
 }
@@ -73,6 +82,57 @@ DiversePaths::~DiversePaths() {
 }
 
 /**
+ * @functino getDiversePaths2
+ */
+std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( std::vector<double> _start,
+										std::vector<double> _goal,
+										int _numPaths,
+										std::vector<std::vector<double> > &_midPoints ) {
+  mNumPaths = _numPaths;
+  std::vector<std::vector<std::vector<double> > > paths;
+  std::vector<std::vector<double> > path;
+  std::vector<std::vector<double> > jointPaths;
+  
+  std::vector<int> dGoal;
+  std::vector<int> dStart;
+
+  // Get ready
+  _midPoints.resize(0);
+
+  //-- 2. Get Dijkstra
+  runDijkstra( _goal, dGoal );
+  runDijkstra( _start, dStart );
+
+  //-- 1. Get the first path
+  getShortestPath( _start, _goal, path, dGoal );
+  _midPoints = getMidPoints(_start, _goal, dStart, dGoal, path.size() );
+
+  // Save it
+  printf("[0] Saving path of size %d \n", path.size() );
+  paths.push_back( path );
+
+  // Get the second path
+  std::vector<double> thePoint;
+  thePoint = _midPoints[ _midPoints.size() / 4 ];
+
+  //-- 4. Find path with thePoint in the middle
+  std::vector<std::vector<double> > pathSM; // Start - Middle
+  std::vector<std::vector<double> > pathMG; // Middle - Goal
+  getShortestPath( thePoint, _start, pathSM, dStart, true );
+  getShortestPath( thePoint, _goal, pathMG, dGoal, false );
+  
+  // Make them together properly
+  path.resize(0);
+  pathSM.pop_back();
+  joinPaths( path, pathSM );
+  joinPaths( path, pathMG );
+
+  paths.push_back( path );
+  return paths;
+}
+
+
+/**
  * @function getDiversePaths
  */
 std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( std::vector<double> _start,
@@ -95,7 +155,7 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
   runDijkstra( _start, dStart );
 
   //-- 1. Get the first path
-  getShortestPath( _start, _goal,  path, dGoal );
+  getShortestPath( _start, _goal, path, dGoal );
   // Save it
   printf("[0] Saving path of size %d \n", path.size() );
   paths.push_back( path );
