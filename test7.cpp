@@ -32,7 +32,7 @@ int main( int argc, char* argv[] ) {
 
   // Settings parameters
   int cost = 1; int radius = 3;
-  int numPaths = 2;
+  int numPaths = 4;
 
   DiversePaths dp( &pf, radius, cost );
 

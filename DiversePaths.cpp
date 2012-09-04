@@ -111,23 +111,32 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   printf("[0] Saving path of size %d \n", path.size() );
   paths.push_back( path );
 
-  // Get the second path
+  // Get the remaining paths
   std::vector<double> thePoint;
-  thePoint = _midPoints[ _midPoints.size() / 4 ];
-
-  //-- 4. Find path with thePoint in the middle
   std::vector<std::vector<double> > pathSM; // Start - Middle
   std::vector<std::vector<double> > pathMG; // Middle - Goal
-  getShortestPath( thePoint, _start, pathSM, dStart, true );
-  getShortestPath( thePoint, _goal, pathMG, dGoal, false );
-  
-  // Make them together properly
-  path.resize(0);
-  pathSM.pop_back();
-  joinPaths( path, pathSM );
-  joinPaths( path, pathMG );
 
-  paths.push_back( path );
+  for( int i = 1; i < mNumPaths; ++i ) {
+
+    thePoint = _midPoints[ _midPoints.size() / (2*i) ];
+
+    //-- Find path with thePoint in the middle
+    pathSM.resize(0);
+    pathMG.resize(0);
+
+    getShortestPath( thePoint, _start, pathSM, dStart, true );
+    getShortestPath( thePoint, _goal, pathMG, dGoal, false );
+  
+    // Make them together properly
+    path.resize(0);
+    pathSM.pop_back();
+    joinPaths( path, pathSM );
+    joinPaths( path, pathMG );
+    
+    paths.push_back( path );
+  }
+
+
   return paths;
 }
 
