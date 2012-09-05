@@ -10,44 +10,6 @@ const int DiversePaths::NX[DIRECTIONS3D] = {  0, 0,  0, 1, 0, -1,  1,  0, -1,  0
 const int DiversePaths::NY[DIRECTIONS3D] = {  0, 0, -1, 0, 1,  0,  0,  1,  0, -1, 0, 1,  0, -1, -1, 1,  1, -1,  -1, 1,1,-1,-1, 1, 1,-1 };
 const int DiversePaths::NZ[DIRECTIONS3D] = { -1, 1,  0, 0, 0,  0, -1, -1, -1, -1, 1, 1,  1,  1,  0, 0,  0,  0,   1, 1,1, 1,-1,-1,-1,-1 };
 
-/**
- * @function getMidPoints
- */
-std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double> _start,
-							      std::vector<double> _goal,
-							      std::vector<int> &_dStart,
-							      std::vector<int> &_dGoal,
-							      int _length ) {
-
-  //-- 2. Get Dijkstra
-  runDijkstra( _goal, _dGoal );
-  runDijkstra( _start, _dStart );
-  
-  std::vector<std::vector<double> > midPoints;
-  std::vector<double> p(3);
-  
-  for( int x = 0; x < mDimX; ++x ) {
-    for( int y = 0; y < mDimY; ++y ) {
-      for( int z = 0; z < mDimZ; ++z ) {
-
-	int ind = xyzToIndex( x, y, z );
-	if( _dStart[ind] != INFINITE_COST ) {
-	  if( _dGoal[ind] != INFINITE_COST ) {	    
-	    int ds = _dStart[ind];
-	    int dg = _dGoal[ind];
-	    if( ds < dg + 2 && ds > dg - 2 && ds + dg < (2*_length) ) {
-	      mDf->gridToWorld( x, y, z, p[0], p[1], p[2] );
-	      midPoints.push_back( p );
-	    }
-	  } // if _dGoal[ind] != INF
-	} // if _dStart[ind]  != INF
-
-      } // for z
-    } // for y
-  } // for x
-
-  return midPoints;
-}
 
 /**
  * @function DiversePaths
@@ -88,10 +50,14 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
 										std::vector<double> _goal,
 										int _numPaths,
 										std::vector<std::vector<double> > &_midPoints ) {
+  printf("getDiversePaths2 \n");
   mNumPaths = _numPaths;
   std::vector<std::vector<std::vector<double> > > paths;
+  std::vector<std::vector<int> > cellPath;
   std::vector<std::vector<double> > path;
   std::vector<std::vector<double> > jointPaths;
+  std::vector<std::vector<int> > cellMidPoints;
+ 
   
   std::vector<int> dGoal;
   std::vector<int> dStart;
@@ -103,14 +69,25 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   runDijkstra( _goal, dGoal );
   runDijkstra( _start, dStart );
 
-  //-- 1. Get the first path
-  getShortestPath( _start, _goal, path, dGoal );
-  _midPoints = getMidPoints(_start, _goal, dStart, dGoal, path.size() );
+  //-- 1. Get the first path ( cells )
+  getShortestPath( _start, _goal, cellPath, dGoal );
 
-  // Save it
-  printf("[0] Saving path of size %d \n", path.size() );
+  printf("[0] Saving path of size %d \n", cellPath.size() );
+  path = getWorldPoints( cellPath );
   paths.push_back( path );
+  
+  //-- 2. Get the midpoints ( cells )
+  cellMidPoints = getMidCells(_start, _goal, dStart, dGoal, cellPath.size() );
+  printf( "Initial number of mid points: %d \n", cellMidPoints.size() );
+  //-- 3. Check how many mid points are not directly connected 
+  std::vector<std::vector<int> > notConnectedCells;
+  std::vector<int> midPathCell(3);
 
+  midPathCell = cellPath[ cellPath.size() / 2 ];
+  notConnectedCells = getNoFreeLineCells( cellMidPoints, midPathCell );
+  _midPoints = getWorldPoints( notConnectedCells );
+  printf("Final number of mid points: %d \n", _midPoints.size() );
+  
   // Get the remaining paths
   std::vector<double> thePoint;
   std::vector<std::vector<double> > pathSM; // Start - Middle
@@ -136,10 +113,31 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
     paths.push_back( path );
   }
 
-
   return paths;
 }
 
+/**
+ * @function getNoFreeLineCells
+ */
+std::vector<std::vector<int> > DiversePaths::getNoFreeLineCells( std::vector<std::vector<int> > _points, 
+								 std::vector<int> _evalPoint ) {
+
+  std::vector<std::vector<int> > noFree;
+  std::vector<std::vector<int> > testLine;
+
+  for( int i = 0; i < _points.size(); ++i ) {
+    testLine = getLine( _points[i][0], _points[i][1], _points[i][2],
+			_evalPoint[0], _evalPoint[1], _evalPoint[2] );
+    for( int j = 0; j < testLine.size(); ++j ) {
+      if( !isValidCell( testLine[j][0], testLine[j][1], testLine[j][2] ) ) {
+	noFree.push_back( _points[i] );
+	break;
+      }
+    }
+  }
+
+  return noFree;
+}
 
 /**
  * @function getDiversePaths
@@ -247,87 +245,65 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
   return paths;
 }
 
-
 /**
- * @function setGoal
- * @brief Set world goal
+ * @function getMidPoints
  */
-bool DiversePaths::setGoal( std::vector<double> _goal ) {
+std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double> _start,
+							      std::vector<double> _goal,
+							      std::vector<int> _dStart,
+							      std::vector<int> _dGoal,
+							      int _length ) {
+  
+  std::vector<std::vector<int> > cellMidPoints;
+  std::vector<std::vector<double> > midPoints;
+  std::vector<double> p(3);
 
-  if( _goal.empty() || _goal.size() < 3 ) {
-    return false; 
+  cellMidPoints = getMidCells( _start, _goal, _dStart, _dGoal, _length );
+
+  for( int i = 0; i < cellMidPoints.size(); ++i ) {
+    mDf->gridToWorld( cellMidPoints[i][0], cellMidPoints[i][1], cellMidPoints[i][2], p[0], p[1], p[2] );
+    midPoints.push_back( p );    
   }
-  
-  std::vector<int> goal(3);  
-  mDf->worldToGrid( _goal[0], _goal[1], _goal[2],
-		    goal[0], goal[1], goal[2] );
-  
-  return setGoal( goal );
+
+  return midPoints;
 }
 
-/**
- * @function setGoal
- * @brief set cell goal
- */
-bool DiversePaths::setGoal( std::vector<int> _goal ) {
-  
-  if( _goal.empty() || _goal.size() < 3 ) {
-    return false;
-  }
-
-  mGoal.clear();
-  
-  if( _goal[0] < mDimX && _goal[1] < mDimY && _goal[2] < mDimZ ) {
-    if( isValidCell( _goal[0], _goal[1], _goal[2] ) ) {
-      mGoal.push_back( _goal );
-    } else {
-      printf( " [setGoal] Goal no valid. Exiting! \n" );
-    }
-  }
-
-  if( mGoal.empty() ) {
-    printf(" [setGoal] Error: No valid goals were received \n");
-    return false;
-  }
-
-  return true;
-}
 
 /**
- * @function setGoals
- * @brief
+ * @function getMidCells
  */
-bool DiversePaths::setGoals( std::vector<std::vector<int> > _goals ) {
-
-  if( _goals.size() <= 0 ) {
-    printf( "[setGoals] No goal cell received. Exiting! \n" );
-    return false;
-  }
+std::vector<std::vector<int> > DiversePaths::getMidCells( std::vector<double> _start,
+							  std::vector<double> _goal,
+							  std::vector<int> _dStart,
+							  std::vector<int> _dGoal,
+							  int _length ) {
   
-  mGoal.clear();
-  
-  // Check validity of goals
-  for( unsigned int i = 0; i < _goals.size(); ++ i ) {
+  std::vector<std::vector<int> > midPoints;
+  std::vector<int> p(3);
 
-    if( _goals[i].size() < 3 ) {
-      continue;
-    }
+  for( int x = 0; x < mDimX; ++x ) {
+    for( int y = 0; y < mDimY; ++y ) {
+      for( int z = 0; z < mDimZ; ++z ) {
 
-    if( _goals[i][0] < mDimX && _goals[i][1] < mDimY && _goals[i][2] < mDimZ ) {
-      mGoal.push_back( _goals[i] );
-    } else {
-      printf( " [setGoals] Goal: %d %d %d is invalid \n", _goals[i][0], _goals[i][1], _goals[i][2] );
-    }
-  }
+	int ind = xyzToIndex( x, y, z );
+	if( _dStart[ind] != INFINITE_COST ) {
+	  if( _dGoal[ind] != INFINITE_COST ) {	    
+	    int ds = _dStart[ind];
+	    int dg = _dGoal[ind];
+	    if( ds < dg + 2 && ds > dg - 2 && ds + dg < (2*_length) ) {
+	      p[0] = x; p[1] = y; p[2] = z;
+	      midPoints.push_back( p );
+	    }
+	  } // if _dGoal[ind] != INF
+	} // if _dStart[ind]  != INF
 
-  if( mGoal.empty() ) {
-    printf(" [setGoals] Error: No valid goals were received \n" );
-    return false;
-  }
+      } // for z
+    } // for y
+  } // for x
 
-  return true;
-
+  return midPoints;
 }
+
 
 /**
  * @function runDijkstra
@@ -524,6 +500,46 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
     return false;
   }
   
+  return true;
+}
+
+/**
+ * @function getShortestPath
+ */
+bool DiversePaths::getShortestPath( std::vector<double> _start,
+				    std::vector<double> _goal,
+				    std::vector<std::vector<int> > &_path,
+				    std::vector<int> _dist,
+				    bool _invert ) {
+
+  if( !setGoal( _goal ) ) {
+    return false;
+  }
+
+  std::vector<int> start(3);
+  std::vector<std::vector<int> > cellPath;
+  _path.clear();
+
+  mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
+
+  if( !getShortestPath( start, cellPath, _dist ) ) {
+    printf( "[getShortestPath] Did not find a path. Exiting! \n" );
+    return false;
+  }
+
+  int n = cellPath.size();
+  int ind;
+
+  for( int i = 0; i < n; ++i ) {
+    if( _invert == false ) {
+      ind = i;
+    }
+    else {
+      ind = n - 1 - i;
+    }
+    _path.push_back( cellPath[ind] );
+  }
+
   return true;
 }
 
@@ -739,6 +755,89 @@ bool DiversePaths::searchOneToOnePath( std::vector<int> _start,
   return true;
 }
 
+
+/**
+ * @function setGoal
+ * @brief Set world goal
+ */
+bool DiversePaths::setGoal( std::vector<double> _goal ) {
+
+  if( _goal.empty() || _goal.size() < 3 ) {
+    return false; 
+  }
+  
+  std::vector<int> goal(3);  
+  mDf->worldToGrid( _goal[0], _goal[1], _goal[2],
+		    goal[0], goal[1], goal[2] );
+  
+  return setGoal( goal );
+}
+
+/**
+ * @function setGoal
+ * @brief set cell goal
+ */
+bool DiversePaths::setGoal( std::vector<int> _goal ) {
+  
+  if( _goal.empty() || _goal.size() < 3 ) {
+    return false;
+  }
+
+  mGoal.clear();
+  
+  if( _goal[0] < mDimX && _goal[1] < mDimY && _goal[2] < mDimZ ) {
+    if( isValidCell( _goal[0], _goal[1], _goal[2] ) ) {
+      mGoal.push_back( _goal );
+    } else {
+      printf( " [setGoal] Goal no valid. Exiting! \n" );
+    }
+  }
+
+  if( mGoal.empty() ) {
+    printf(" [setGoal] Error: No valid goals were received \n");
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * @function setGoals
+ * @brief
+ */
+bool DiversePaths::setGoals( std::vector<std::vector<int> > _goals ) {
+
+  if( _goals.size() <= 0 ) {
+    printf( "[setGoals] No goal cell received. Exiting! \n" );
+    return false;
+  }
+  
+  mGoal.clear();
+  
+  // Check validity of goals
+  for( unsigned int i = 0; i < _goals.size(); ++ i ) {
+
+    if( _goals[i].size() < 3 ) {
+      continue;
+    }
+
+    if( _goals[i][0] < mDimX && _goals[i][1] < mDimY && _goals[i][2] < mDimZ ) {
+      mGoal.push_back( _goals[i] );
+    } else {
+      printf( " [setGoals] Goal: %d %d %d is invalid \n", _goals[i][0], _goals[i][1], _goals[i][2] );
+    }
+  }
+
+  if( mGoal.empty() ) {
+    printf(" [setGoals] Error: No valid goals were received \n" );
+    return false;
+  }
+
+  return true;
+
+}
+
+
 /**
  * @function HeuristicCost
  */
@@ -797,6 +896,139 @@ void DiversePaths::PushOpenSet( State3D* _u ) {
 
 }
 
+/**
+ * @function setRadius
+ * @brief
+ */
+void DiversePaths::setRadius( double _r ) {
+
+  mRadiusM = _r;
+  mRadius = _r / ( mDf->getResolution( PFDistanceField::DIM_X) ) + 0.5;
+}
+
+/**
+ * @function getRadiusCells
+ * @brief
+ */
+int DiversePaths::getRadiusCells() {
+  return int(mRadius);
+}
+
+/**
+ * @function reInitializeState3D
+ * @brief
+ */
+void DiversePaths::reInitializeState3D( State3D* _state ) {
+
+  _state->g = INFINITE_COST;
+  _state->iterationclosed = 0;
+}
+
+/**
+ * @function initializeState3D
+ * @brief
+ */
+void DiversePaths::initializeState3D( State3D* _state, int _x, int _y, int _z ) {
+
+  _state->g = INFINITE_COST;
+  _state->iterationclosed = 0;
+  _state->x = _x;
+  _state->y = _y;
+  _state->z = _z;
+
+}
+
+/**
+ * @function create3DStateSpace
+ * @brief
+ */
+void DiversePaths::create3DStateSpace( State3D**** _stateSpace3D ) {
+  
+  *_stateSpace3D = new State3D** [mDimX];
+
+  for( int x = 0; x < mDimX; ++x ) {    
+  
+    (*_stateSpace3D)[x] = new State3D* [mDimY];
+  
+    for( int y = 0; y < mDimY; ++y ) {
+      
+      (*_stateSpace3D)[x][y] = new State3D[mDimZ];
+      
+      for( int z = 0; z < mDimZ; ++z ) {
+	initializeState3D( &(*_stateSpace3D)[x][y][z], x, y, z );
+      }
+    }
+  }
+}
+
+/**
+ * @function DiversePaths
+ * @brief
+ */
+void DiversePaths::delete3DStateSpace( State3D**** _stateSpace3D ) {
+
+  int x; int y;
+  if( (*_stateSpace3D) != NULL ) {
+
+    for( int x = 0; x < mDimX; ++x ) {
+      for( int y = 0; y < mDimY; ++y ) {
+	delete [] (*_stateSpace3D)[x][y];
+      }
+      delete [] (* _stateSpace3D)[x];
+    }
+
+    delete[] (*_stateSpace3D);
+    ( *_stateSpace3D ) = NULL;
+    
+  } // end of if
+  
+}
+
+/**
+ * @function isGoal
+ */
+bool DiversePaths::isGoal( const int &_x, const int &_y, const int &_z ) {
+
+  std::vector<int> goal(3);
+  goal[0] = _x; goal[1] = _y; goal[2] = _z;
+  return isGoal( goal );
+}
+
+/**
+ * @function DiversePaths
+ * @brief
+ */
+bool DiversePaths::isGoal( const std::vector<int> &_state ) {
+
+  for( unsigned int i = 0; i < mGoal.size(); ++i ) {
+    if( ( _state[0] <= mGoal[i][0] + GOAL_TOLERANCE && 
+	  _state[0] >= mGoal[i][0] - GOAL_TOLERANCE ) &&
+	( _state[1] <= mGoal[i][1] + GOAL_TOLERANCE &&
+	  _state[1] >= mGoal[i][1] - GOAL_TOLERANCE ) &&
+	( _state[2] <= mGoal[i][2] + GOAL_TOLERANCE &&
+	  _state[2] >= mGoal[i][2] - GOAL_TOLERANCE ) ) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * @function DiversePaths
+ * @brief
+ */
+bool DiversePaths::isValidCell( const int _x, const int _y, const int _z ) {
+
+  if( mDf->getDistanceFromCell( _x, _y, _z ) <= mRadiusM ) {
+    return false;
+  }
+
+  return true;
+  
+}
+
+////////////////////////////// HEAP UTILITIES /////////////////////////////////////////////////
 /**
  * @function PopOpenSet
  */
@@ -1009,139 +1241,6 @@ void DiversePaths::UpdateLowerOpenSet( State3D* _u ) {
   
 }
 
-
-/**
- * @function setRadius
- * @brief
- */
-void DiversePaths::setRadius( double _r ) {
-
-  mRadiusM = _r;
-  mRadius = _r / ( mDf->getResolution( PFDistanceField::DIM_X) ) + 0.5;
-}
-
-/**
- * @function getRadiusCells
- * @brief
- */
-int DiversePaths::getRadiusCells() {
-  return int(mRadius);
-}
-
-/**
- * @function reInitializeState3D
- * @brief
- */
-void DiversePaths::reInitializeState3D( State3D* _state ) {
-
-  _state->g = INFINITE_COST;
-  _state->iterationclosed = 0;
-}
-
-/**
- * @function initializeState3D
- * @brief
- */
-void DiversePaths::initializeState3D( State3D* _state, int _x, int _y, int _z ) {
-
-  _state->g = INFINITE_COST;
-  _state->iterationclosed = 0;
-  _state->x = _x;
-  _state->y = _y;
-  _state->z = _z;
-
-}
-
-/**
- * @function create3DStateSpace
- * @brief
- */
-void DiversePaths::create3DStateSpace( State3D**** _stateSpace3D ) {
-  
-  *_stateSpace3D = new State3D** [mDimX];
-
-  for( int x = 0; x < mDimX; ++x ) {    
-  
-    (*_stateSpace3D)[x] = new State3D* [mDimY];
-  
-    for( int y = 0; y < mDimY; ++y ) {
-      
-      (*_stateSpace3D)[x][y] = new State3D[mDimZ];
-      
-      for( int z = 0; z < mDimZ; ++z ) {
-	initializeState3D( &(*_stateSpace3D)[x][y][z], x, y, z );
-      }
-    }
-  }
-}
-
-/**
- * @function DiversePaths
- * @brief
- */
-void DiversePaths::delete3DStateSpace( State3D**** _stateSpace3D ) {
-
-  int x; int y;
-  if( (*_stateSpace3D) != NULL ) {
-
-    for( int x = 0; x < mDimX; ++x ) {
-      for( int y = 0; y < mDimY; ++y ) {
-	delete [] (*_stateSpace3D)[x][y];
-      }
-      delete [] (* _stateSpace3D)[x];
-    }
-
-    delete[] (*_stateSpace3D);
-    ( *_stateSpace3D ) = NULL;
-    
-  } // end of if
-  
-}
-
-/**
- * @function isGoal
- */
-bool DiversePaths::isGoal( const int &_x, const int &_y, const int &_z ) {
-
-  std::vector<int> goal(3);
-  goal[0] = _x; goal[1] = _y; goal[2] = _z;
-  return isGoal( goal );
-}
-
-/**
- * @function DiversePaths
- * @brief
- */
-bool DiversePaths::isGoal( const std::vector<int> &_state ) {
-
-  for( unsigned int i = 0; i < mGoal.size(); ++i ) {
-    if( ( _state[0] <= mGoal[i][0] + GOAL_TOLERANCE && 
-	  _state[0] >= mGoal[i][0] - GOAL_TOLERANCE ) &&
-	( _state[1] <= mGoal[i][1] + GOAL_TOLERANCE &&
-	  _state[1] >= mGoal[i][1] - GOAL_TOLERANCE ) &&
-	( _state[2] <= mGoal[i][2] + GOAL_TOLERANCE &&
-	  _state[2] >= mGoal[i][2] - GOAL_TOLERANCE ) ) {
-      return true;
-    }
-  }
-  
-  return false;
-}
-
-/**
- * @function DiversePaths
- * @brief
- */
-bool DiversePaths::isValidCell( const int _x, const int _y, const int _z ) {
-
-  if( mDf->getDistanceFromCell( _x, _y, _z ) <= mRadiusM ) {
-    return false;
-  }
-
-  return true;
-  
-}
-
 /////////////////////////// DF TO PATH FUNCTIONS /////////////////////////////////////////////
 PFDistanceField* DiversePaths::createDfToPathSet( std::vector< std::vector<double> > _path  ) {
 
@@ -1296,8 +1395,27 @@ std::vector<std::vector<double> > DiversePaths::getPointsAsFarAsFromSet( PFDista
 
   return points;
 }
-/////////////////////////// VISUALIZATION FUNCTIONS //////////////////////////////////////////
 
+///////////////////////// UTILITIES /////////////////////////////////
+
+/**
+ * @function getWorldPoints
+ */
+std::vector<std::vector<double> > DiversePaths::getWorldPoints( std::vector<std::vector<int> > _cellPath ) {
+
+  std::vector<std::vector<double> > path;
+  std::vector<double> p(3);
+
+  for( int i = 0; i < _cellPath.size(); ++i ) {
+    mDf->gridToWorld( _cellPath[i][0], _cellPath[i][1], _cellPath[i][2],
+		      p[0], p[1], p[2] );
+    path.push_back( p );
+  }
+
+  return path;
+}
+
+/////////////////////////// VISUALIZATION FUNCTIONS //////////////////////////////////////////
 
 /**
  * @function visualizePath
@@ -1374,7 +1492,5 @@ void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisu
     
     
     viewPCD( obstacleCloud, _viewer, obsR, obsG, obsB );
-  }
-
-  
+  } 
 }

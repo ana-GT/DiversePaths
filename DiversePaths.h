@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <queue>
 #include <distance_field/pf_distance_field.h>
+#include <bresenham.h>
 
 
 #define SMALL_NUM 0.00000001
@@ -73,17 +74,22 @@ class DiversePaths {
 								    int _numPaths,
 								    std::vector<std::vector<double> > &_midPoints );
 
+  std::vector<std::vector<int> > getNoFreeLineCells( std::vector<std::vector<int> > _points, 
+						     std::vector<int> _evalPoint );
+
   std::vector<std::vector<double> > getMidPoints( std::vector<double> _start,
 						  std::vector<double> _goal,
-						  std::vector<int> &_dStart,
-						  std::vector<int> &_dGoal,
+						  std::vector<int> _dStart,
+						  std::vector<int> _dGoal,
 						  int _length );
 
-  // Search functions
-  bool setGoal( std::vector<double> _goal );
-  bool setGoal( std::vector<int> _goal );
-  bool setGoals( std::vector<std::vector<int> > _goals );
-
+  std::vector<std::vector<int> > getMidCells( std::vector<double> _start,
+					      std::vector<double> _goal,
+					      std::vector<int> _dStart,
+					       std::vector<int> _dGoal,
+					      int _length ); 
+  
+  // Dijkstra
   bool runDijkstra( std::vector<double> _goal, 
 		    std::vector<int> &_dist );
   void searchOneSourceAllPaths( State3D*** _stateSpace,
@@ -91,12 +97,20 @@ class DiversePaths {
   bool getShortestPath( std::vector<int> _start,
 			std::vector< std::vector<int> > &_path,
 			std::vector<int> _dist );
+  
+  bool getShortestPath( std::vector<double> _start,
+			std::vector<double> _goal,
+			std::vector<std::vector<int> > &_path,
+			std::vector<int> _dist,
+			bool _invert = false ); 
+
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector< std::vector<double> > &_path,
 			std::vector<int> _dist,
 			bool _invert = false );
 
+  // A*
   bool runAstar(std::vector<double> _start,
 		std::vector<double> _goal,
 		std::vector<std::vector<double> > &_path );
@@ -106,33 +120,8 @@ class DiversePaths {
 			   std::vector<int> _goal,
 			   std::vector<std::vector<double> > &_path );
 
-  void setRadius( double _r );
-  int getRadiusCells();
-  void reInitializeState3D( State3D* _state );
-  void initializeState3D( State3D* _state, int _x, int _y, int _z );
-  void create3DStateSpace( State3D**** _stateSpace3D );
-  void delete3DStateSpace( State3D**** _stateSpace3D );
-  inline int xyzToIndex( int _x, int _y, int _z );
-  bool isGoal( const std::vector<int> &_state );
-  bool isGoal( const int &_x, const int &_y, const int &_z );
-  bool isValidCell( const int _x, const int _y, const int _z );
-
-  // Heap functions
-  int HeuristicCost( int _sx, int _sy, int _sz, 
-		     int _gx, int _gy, int _gz );
-  void PushOpenSet( State3D* _u );
-  State3D* PopOpenSet();
-  bool TracePath( std::vector<int> _start,
-			      std::vector<int> _goal,
-			      std::vector< std::vector<double> > &_path );
-  void UpdateLowerOpenSet( State3D* _u ); 
-
   // Distance Field to paths
   PFDistanceField* createDfToPathSet( std::vector< std::vector<double> > _path  );
-
-  // Distance Field utilities
-  void joinPaths( std::vector<std::vector<double> > &_origPath,
-		  std::vector<std::vector<double> > _addedPath );
 
   std::vector<std::vector<double> > getPointsAtLeastAsFarAs( PFDistanceField* _df, double _thresh );
 
@@ -149,8 +138,39 @@ class DiversePaths {
 							     std::vector<std::vector<double> > _set,
 							     double _thresh, 
 							     double _tol );
-  
-  // Visualization
+
+  //-- Search Utilities
+  bool setGoal( std::vector<double> _goal );
+  bool setGoal( std::vector<int> _goal );
+  bool setGoals( std::vector<std::vector<int> > _goals );
+
+  void setRadius( double _r );
+  int getRadiusCells();
+  void reInitializeState3D( State3D* _state );
+  void initializeState3D( State3D* _state, int _x, int _y, int _z );
+  void create3DStateSpace( State3D**** _stateSpace3D );
+  void delete3DStateSpace( State3D**** _stateSpace3D );
+  inline int xyzToIndex( int _x, int _y, int _z );
+  bool isGoal( const std::vector<int> &_state );
+  bool isGoal( const int &_x, const int &_y, const int &_z );
+  bool isValidCell( const int _x, const int _y, const int _z );  
+
+  //-- Utilities
+  std::vector<std::vector<double> > getWorldPoints( std::vector<std::vector<int> > _cellPath );
+  void joinPaths( std::vector<std::vector<double> > &_origPath,
+		  std::vector<std::vector<double> > _addedPath );
+
+  //-- Heap functions
+  int HeuristicCost( int _sx, int _sy, int _sz, 
+		     int _gx, int _gy, int _gz );
+  void PushOpenSet( State3D* _u );
+  State3D* PopOpenSet();
+  bool TracePath( std::vector<int> _start,
+		  std::vector<int> _goal,
+		  std::vector< std::vector<double> > &_path );
+  void UpdateLowerOpenSet( State3D* _u ); 
+
+  //-- Visualization
   void visualizePath( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 		      std::vector<std::vector<double> > _path,
 		      bool _viewObstacles = false,

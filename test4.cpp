@@ -1,5 +1,5 @@
 /**
- * @file test1.cpp
+ * @file test4.cpp
  * @author A. Huaman Q.
  * @date 2012-08-21
  * @brief Test case 4: Una sola caja grande
@@ -37,7 +37,7 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.4, 0.4, 0.4, bx, by, bz );
 
   // Settings parameters
-  int cost = 1; int radius = 3; int numPaths = 5;
+  int cost = 1; int radius = 3; int numPaths = 2;
 
   DiversePaths dp( &pf, radius, cost );
 
@@ -48,11 +48,39 @@ int main( int argc, char* argv[] ) {
   start[0] = 0.5; start[1] = 0.1; start[2] = 0.5;
 
   // Paths
+  std::vector<std::vector<double> > midPoints;
   std::vector<std::vector<std::vector<double> > > paths;
-  std::vector<std::vector<double> > midPoints;  
-  paths = dp.getDiversePaths( start, goal, numPaths, midPoints );
+  std::vector<int> dStart;
+  std::vector<int> dGoal;
+
+  // Get paths
+  paths = dp.getDiversePaths2( start, goal, numPaths, midPoints );
+  printf( "Num points: %d \n", midPoints.size() );
+  // Create viewer
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
+
+  // View the path
+  reset_PCL_Tools_counters();
+  
+  dp.visualizePaths( viewer, paths, true );
+
+  // View balls
+  /*
+  for( int i = 0; i < midPoints.size(); ++i ) {
+    viewBall( midPoints[i][0], midPoints[i][1], midPoints[i][2],
+	      0.025, viewer, 0, 0, 255 );
+	      } */
+  
+  viewPoints( midPoints, viewer, 255,0,255 );
+
+  // Loop
+  while( !viewer->wasStopped() ) {
+    viewer->spinOnce(100);
+    boost::this_thread::sleep( boost::posix_time::microseconds(100000));
+    } 
 
   printf("End of program \n");
   return(0);
+
 }
 

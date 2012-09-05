@@ -11,7 +11,7 @@ set( ROS_tDf  ROS_Tools/distance_field )
 set( ROS_t ROS_Tools)
 
 
-set( RosFx_srcs ${ROS_tDf}/pf_distance_field.cpp DiversePaths.cpp )
+set( RosFx_srcs ${ROS_tDf}/pf_distance_field.cpp DiversePaths.cpp  ${ROS_t}/bresenham.cpp )
 set( PCL_srcs PCL_Tools/PCL_Tools.cpp )
 set( src_files main.cpp DiversePaths.cpp )
 set( hdr_files )
@@ -32,8 +32,8 @@ target_link_libraries( main ${PCL_LIBRARIES} )
 #target_link_libraries( test3 ${PCL_LIBRARIES} )
 
 # Test 4
-#add_executable( test4 test4.cpp ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )
-#target_link_libraries( test4 ${PCL_LIBRARIES} )
+add_executable( test4 test4.cpp ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )
+target_link_libraries( test4 ${PCL_LIBRARIES} )
 
 # Test 5
 #add_executable( test5 test5.cpp ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )

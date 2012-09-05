@@ -24,9 +24,12 @@ int main( int argc, char* argv[] ) {
   ox = 0.0; oy = 0.0; oz = 0.0;
   resolution = 0.0125;
   
+  // Distance Field
   printf("Create PF Distance Field \n");
   PFDistanceField pf( sx, sy, sz, resolution, ox, oy, oz );
   pf.reset();
+
+  // Geometry
   pf.addBox( 0.2, 0.2, 0.3, 0.24, 0.24, 0.3 );
   pf.addBox( 0.1, 0.1, 0.2, 0.4, 0.5, 0.4 );
 
