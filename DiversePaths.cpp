@@ -70,12 +70,15 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
   mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] );
 
+  printf("Start: %d %d %d Goal: %d %d %d \n", start[0], start[1], start[2], goal[0], goal[1], goal[2]);
+
   //-- 2. Get Dijkstra
   runDijkstra( _goal, dGoal );
   runDijkstra( _start, dStart );
 
   //-- 1. Get the first path ( cells )
   getShortestPath( start, cellPath, dGoal, false );
+  // getShortestPath( _start, _goal, cellPath, dGoal, false );
 
   printf("[0] Saving path of size %d \n", cellPath.size() );
   paths.push_back( getWorldPoints( cellPath ) );
@@ -533,6 +536,8 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
   std::vector<std::vector<int> > temp_path;
   int newx; int newy; int newz;
 
+  printf("Start: %d %d %d  \n", _start[0], _start[1], _start[2] );
+
   // Make sure the while loop eventually stops
   int max_path_length = mDimX*mDimY;
 
@@ -597,6 +602,7 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
   
   // If it found a path, check if it should be inverted
   int n = temp_path.size();
+  printf("Num elements temp path: %d \n", n);
   int ind;
   _path.resize(0);
 
