@@ -37,7 +37,7 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.4, 0.4, 0.4, bx, by, bz );
 
   // Settings parameters
-  int cost = 1; int radius = 3; int numPaths = 2;
+  int cost = 10; int radius = 3; int numPaths = 6;
 
   DiversePaths dp( &pf, radius, cost );
 
@@ -65,13 +65,12 @@ int main( int argc, char* argv[] ) {
   dp.visualizePaths( viewer, paths, true );
 
   // View balls
-  /*
   for( int i = 0; i < midPoints.size(); ++i ) {
     viewBall( midPoints[i][0], midPoints[i][1], midPoints[i][2],
 	      0.025, viewer, 0, 0, 255 );
-	      } */
+  } 
   
-  viewPoints( midPoints, viewer, 255,0,255 );
+  // viewPoints( midPoints, viewer, 255,0,255 );
 
   // Loop
   while( !viewer->wasStopped() ) {

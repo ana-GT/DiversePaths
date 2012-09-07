@@ -159,6 +159,8 @@ class DiversePaths {
   std::vector<std::vector<double> > getWorldPoints( std::vector<std::vector<int> > _cellPath );
   void joinPaths( std::vector<std::vector<double> > &_origPath,
 		  std::vector<std::vector<double> > _addedPath );
+  void joinPaths( std::vector<std::vector<int> > &_origPath,
+		  std::vector<std::vector<int> > _addedPath );
 
   //-- Heap functions
   int HeuristicCost( int _sx, int _sy, int _sz, 

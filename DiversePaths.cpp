@@ -30,7 +30,7 @@ DiversePaths::DiversePaths( PFDistanceField *_df,
   mCost1Move = mCost;
   mCost2Move = mCost*sqrt(2.0);
   mCost3Move = mCost*sqrt(3.0);
-
+  printf( " [*] Costs: %d %d %d \n", mCost1Move, mCost2Move, mCost3Move );
   mRadiusM = double( mRadius*(mDf->getResolution(PFDistanceField::DIM_X))  );
 }
 
@@ -54,11 +54,9 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   mNumPaths = _numPaths;
   std::vector<std::vector<std::vector<double> > > paths;
   std::vector<std::vector<int> > cellPath;
-  std::vector<std::vector<double> > path;
   std::vector<std::vector<double> > jointPaths;
   std::vector<std::vector<int> > cellMidPoints;
- 
-  
+   
   std::vector<int> dGoal;
   std::vector<int> dStart;
 
@@ -73,44 +71,49 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   getShortestPath( _start, _goal, cellPath, dGoal );
 
   printf("[0] Saving path of size %d \n", cellPath.size() );
-  path = getWorldPoints( cellPath );
-  paths.push_back( path );
+  paths.push_back( getWorldPoints( cellPath ) );
   
   //-- 2. Get the midpoints ( cells )
   cellMidPoints = getMidCells(_start, _goal, dStart, dGoal, cellPath.size() );
   printf( "Initial number of mid points: %d \n", cellMidPoints.size() );
-  //-- 3. Check how many mid points are not directly connected 
+
   std::vector<std::vector<int> > notConnectedCells;
   std::vector<int> midPathCell(3);
-
-  midPathCell = cellPath[ cellPath.size() / 2 ];
-  notConnectedCells = getNoFreeLineCells( cellMidPoints, midPathCell );
-  _midPoints = getWorldPoints( notConnectedCells );
-  printf("Final number of mid points: %d \n", _midPoints.size() );
   
   // Get the remaining paths
-  std::vector<double> thePoint;
-  std::vector<std::vector<double> > pathSM; // Start - Middle
-  std::vector<std::vector<double> > pathMG; // Middle - Goal
+  std::vector<int> thePoint;
+  std::vector<std::vector<int> > pathSM; // Start - Middle
+  std::vector<std::vector<int> > pathMG; // Middle - Goal
 
   for( int i = 1; i < mNumPaths; ++i ) {
 
-    thePoint = _midPoints[ _midPoints.size() / (2*i) ];
+    // Get the latest middle point
+    midPathCell = cellPath[ cellPath.size() / 2 ];
+    cellMidPoints = getNoFreeLineCells( cellMidPoints, midPathCell );
+    printf("[%d] Trimmed Mid Points: %d \n", i, cellMidPoints.size() );  
+
+    // Get a new middle point
+    thePoint = cellMidPoints[ cellMidPoints.size() / 2 ];
 
     //-- Find path with thePoint in the middle
-    pathSM.resize(0);
-    pathMG.resize(0);
+    pathSM.resize(0);  pathMG.resize(0);
 
-    getShortestPath( thePoint, _start, pathSM, dStart, true );
-    getShortestPath( thePoint, _goal, pathMG, dGoal, false );
+    std::vector<double> thePointD(3);
+    mDf->gridToWorld( thePoint[0], thePoint[1], thePoint[2], thePointD[0], thePointD[1], thePointD[2] );
+    getShortestPath( thePointD, _start, pathSM, dStart, true );
+    getShortestPath( thePointD, _goal, pathMG, dGoal, false );
   
     // Make them together properly
-    path.resize(0);
+    cellPath.resize(0);
     pathSM.pop_back();
-    joinPaths( path, pathSM );
-    joinPaths( path, pathMG );
+    joinPaths( cellPath, pathSM );
+    joinPaths( cellPath, pathMG );
     
-    paths.push_back( path );
+    paths.push_back( getWorldPoints(cellPath) );
+  }
+
+  for( int i = 0; i < mNumPaths; ++i ) {
+    _midPoints.push_back( paths[i][ paths[i].size() / 2 ] );
   }
 
   return paths;
@@ -135,7 +138,6 @@ std::vector<std::vector<int> > DiversePaths::getNoFreeLineCells( std::vector<std
       }
     }
   }
-
   return noFree;
 }
 
@@ -290,7 +292,9 @@ std::vector<std::vector<int> > DiversePaths::getMidCells( std::vector<double> _s
 	  if( _dGoal[ind] != INFINITE_COST ) {	    
 	    int ds = _dStart[ind];
 	    int dg = _dGoal[ind];
-	    if( ds < dg + 2 && ds > dg - 2 && ds + dg < (2*_length) ) {
+	    if( ds < dg + 2*mCost1Move && 
+		ds > dg - 2*mCost1Move && 
+		ds + dg < (2*_length*mCost1Move) ) {
 	      p[0] = x; p[1] = y; p[2] = z;
 	      midPoints.push_back( p );
 	    }
@@ -1274,6 +1278,18 @@ PFDistanceField* DiversePaths::createDfToPathSet( std::vector< std::vector<doubl
  */
 void DiversePaths::joinPaths( std::vector<std::vector<double> > &_origPath,
 			      std::vector<std::vector<double> > _addedPath ) {
+  
+  for( int i = 0; i < _addedPath.size(); ++i ) {
+    _origPath.push_back( _addedPath[i] );
+  }
+
+}
+
+/**
+ * @function joinPaths
+ */
+void DiversePaths::joinPaths( std::vector<std::vector<int> > &_origPath,
+			      std::vector<std::vector<int> > _addedPath ) {
   
   for( int i = 0; i < _addedPath.size(); ++i ) {
     _origPath.push_back( _addedPath[i] );
