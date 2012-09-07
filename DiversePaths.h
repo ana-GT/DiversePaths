@@ -94,21 +94,24 @@ class DiversePaths {
 		    std::vector<int> &_dist );
   void searchOneSourceAllPaths( State3D*** _stateSpace,
 				std::vector<int> &_dist );
-  bool getShortestPath( std::vector<int> _start,
-			std::vector< std::vector<int> > &_path,
-			std::vector<int> _dist );
-  
-  bool getShortestPath( std::vector<double> _start,
-			std::vector<double> _goal,
-			std::vector<std::vector<int> > &_path,
-			std::vector<int> _dist,
-			bool _invert = false ); 
 
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector< std::vector<double> > &_path,
 			std::vector<int> _dist,
 			bool _invert = false );
+
+  bool getShortestPath( std::vector<double> _start,
+			std::vector<double> _goal,
+			std::vector<std::vector<int> > &_path,
+			std::vector<int> _dist,
+			bool _invert = false ); 
+
+  bool getShortestPath( std::vector<int> _start,
+			std::vector< std::vector<int> > &_path,
+			std::vector<int> _dist,
+			bool _invert = false );
+
 
   // A*
   bool runAstar(std::vector<double> _start,
