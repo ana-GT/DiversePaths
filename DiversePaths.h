@@ -98,19 +98,19 @@ class DiversePaths {
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector< std::vector<double> > &_path,
-			int* _dist,
+			int* &_dist,
 			bool _invert = false );
 
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector<std::vector<int> > &_path,
-			int* _dist,
+			int* &_dist,
 			bool _invert = false ); 
 
   bool getShortestPath( std::vector<int> _start,
 			std::vector<int> _goal,
 			std::vector< std::vector<int> > &_path,
-			int* _dist,
+			int* &_dist,
 			bool _invert = false );
 
 

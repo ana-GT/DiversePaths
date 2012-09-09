@@ -468,7 +468,7 @@ void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace,
 bool DiversePaths::getShortestPath( std::vector<double> _start,
 				    std::vector<double> _goal,
 				    std::vector< std::vector<double> > &_path,
-				    int* _dist,
+				    int* &_dist,
 				    bool _invert ) {
 
   if( !setGoal( _goal ) ) {
@@ -507,7 +507,7 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
 bool DiversePaths::getShortestPath( std::vector<double> _start,
 				    std::vector<double> _goal,
 				    std::vector<std::vector<int> > &_path,
-				    int* _dist,
+				    int* &_dist,
 				    bool _invert ) {
 
   if( !setGoal( _goal ) ) {
@@ -537,7 +537,7 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
 bool DiversePaths::getShortestPath( std::vector<int> _start,
 				    std::vector<int> _goal,
 				    std::vector< std::vector<int> > &_path,
-				    int* _dist,
+				    int* &_dist,
 				    bool _invert ) {
 
   // Set goal - important
