@@ -37,7 +37,7 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.1, 0.4, 0.6, bx, by, bz );
 
   // Settings parameters
-  int cost = 10; int radius = 1; int numPaths = 4;
+  int cost = 10; int radius = 3; int numPaths = 4;
 
   DiversePaths dp( &pf, radius, cost );
 

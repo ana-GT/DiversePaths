@@ -1,7 +1,7 @@
 /**
  * @file test1.cpp
  * @author A. Huaman Q.
- * @date 2012-08-21
+ * @date 2012-09-08
  * @brief Test case 1: Caja con agujero en el medio
  */
 
@@ -53,8 +53,6 @@ int main( int argc, char* argv[] ) {
   // Paths
   std::vector<std::vector<double> > midPoints;
   std::vector<std::vector<std::vector<double> > > paths;
-  std::vector<int> dStart;
-  std::vector<int> dGoal;
 
   // Get paths
   time_t ts = clock();

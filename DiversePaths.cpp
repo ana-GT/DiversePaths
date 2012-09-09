@@ -58,8 +58,8 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   std::vector<std::vector<double> > jointPaths;
   std::vector<std::vector<int> > cellMidPoints;
    
-  std::vector<int> dGoal;
-  std::vector<int> dStart;
+  int* dGoal;
+  int* dStart;
 
   // Get ready
   _midPoints.resize(0);
@@ -70,15 +70,16 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
   mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] );
 
-  printf("Start: %d %d %d Goal: %d %d %d \n", start[0], start[1], start[2], goal[0], goal[1], goal[2]);
-
   //-- 2. Get Dijkstra
+  printf("Run Dijkstra goal \n");
   runDijkstra( _goal, dGoal );
+
+  printf("Run Dijkstra start \n");
   runDijkstra( _start, dStart );
 
   //-- 1. Get the first path ( cells )
-  getShortestPath( start, cellPath, dGoal, false );
-  // getShortestPath( _start, _goal, cellPath, dGoal, false );
+  printf("Get Shortest Path \n");
+  getShortestPath( start, goal, cellPath, dGoal, false );
 
   printf("[0] Saving path of size %d \n", cellPath.size() );
   paths.push_back( getWorldPoints( cellPath ) );
@@ -92,10 +93,13 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   std::vector<std::vector<int> > tempPath;
   std::vector<std::vector<int> > tempFirst;
   std::vector<std::vector<int> > tempLast;
+
+  printf( "--> Start cellMidPoint paths \n" );
+  time_t ts = clock();
   for( int i = 0; i < cellMidPoints.size(); ++i ) {
    
-    getShortestPath( cellMidPoints[i], tempFirst, dStart, true );
-    getShortestPath( cellMidPoints[i], tempLast, dGoal, false );
+    getShortestPath( cellMidPoints[i], start, tempFirst, dStart, true );
+    getShortestPath( cellMidPoints[i], goal, tempLast, dGoal, false );
   
     // Make them together properly
     tempPath.resize(0);
@@ -105,6 +109,10 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
 
     midPaths.push_back( tempPath );
   }
+  time_t tf = clock();
+  double dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+
+  printf( "--> End %d cellMidPoint paths: %f only for for  \n", cellMidPoints.size(), dt );
 
   std::vector<std::vector<int> > notConnectedCells;
   std::vector<int> midPathCell(3);
@@ -127,10 +135,8 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
     //-- Find path with thePoint in the middle
     pathSM.resize(0);  pathMG.resize(0);
 
-    std::vector<double> thePointD(3);
-    mDf->gridToWorld( thePoint[0], thePoint[1], thePoint[2], thePointD[0], thePointD[1], thePointD[2] );
-    getShortestPath( thePointD, _start, pathSM, dStart, true );
-    getShortestPath( thePointD, _goal, pathMG, dGoal, false );
+    getShortestPath( thePoint, start, pathSM, dStart, true );
+    getShortestPath( thePoint, goal, pathMG, dGoal, false );
   
     // Make them together properly
     cellPath.resize(0);
@@ -182,8 +188,8 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
   std::vector<std::vector<double> > path;
   std::vector<std::vector<double> > jointPaths;
 
-  std::vector<int> dGoal;
-  std::vector<int> dStart;
+  int* dGoal;
+  int* dStart;
 
   // Get ready
   _midPoints.resize(0);
@@ -281,8 +287,8 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths( s
  */
 std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double> _start,
 							      std::vector<double> _goal,
-							      std::vector<int> _dStart,
-							      std::vector<int> _dGoal,
+							      int* _dStart,
+							      int* _dGoal,
 							      int _length ) {
   
   std::vector<std::vector<int> > cellMidPoints;
@@ -305,8 +311,8 @@ std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<double
  */
 std::vector<std::vector<int> > DiversePaths::getMidCells( std::vector<double> _start,
 							  std::vector<double> _goal,
-							  std::vector<int> _dStart,
-							  std::vector<int> _dGoal,
+							  int* _dStart,
+							  int* _dGoal,
 							  int _length ) {
   
   std::vector<std::vector<int> > midPoints;
@@ -343,14 +349,16 @@ std::vector<std::vector<int> > DiversePaths::getMidCells( std::vector<double> _s
  * @brief
  */
 bool DiversePaths::runDijkstra( std::vector<double> _goal,
-				std::vector<int> &_dist ) {
+				int* &_dist ) {
 
   if( !setGoal(_goal) ) {
     return false;
   }
 
   mDistLength = (mDimX - 1) + (mDimY - 1)*(mDimX) + (mDimZ - 1)*(mDimX)*(mDimY) + 1;
-  _dist.resize( mDistLength );
+
+  _dist = new int[mDistLength];
+
   State3D*** stateSpace3D;
   create3DStateSpace( &stateSpace3D );
   searchOneSourceAllPaths( stateSpace3D, _dist );
@@ -363,7 +371,7 @@ bool DiversePaths::runDijkstra( std::vector<double> _goal,
  * @function searchOneSourceAllPaths
  */
 void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace,
-					    std::vector<int> &_dist ) {
+					    int* _dist ) {
   
   State3D* u;
   int newx; int newy; int newz;
@@ -460,7 +468,7 @@ void DiversePaths::searchOneSourceAllPaths( State3D*** _stateSpace,
 bool DiversePaths::getShortestPath( std::vector<double> _start,
 				    std::vector<double> _goal,
 				    std::vector< std::vector<double> > &_path,
-				    std::vector<int> _dist,
+				    int* _dist,
 				    bool _invert ) {
 
   if( !setGoal( _goal ) ) {
@@ -468,14 +476,17 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
   }
 
   std::vector<int> start(3);
+  std::vector<int> goal(3);
+
   std::vector<std::vector<int> > cellPath;
   std::vector<double> p(3);
 
   _path.clear();
 
   mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
+  mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] );
 
-  if( !getShortestPath( start, cellPath, _dist, _invert ) ) {
+  if( !getShortestPath( start, goal, cellPath, _dist, _invert ) ) {
     printf( "[getShortestPath] Did not find a path. Exiting! \n" );
     return false;
   }
@@ -496,7 +507,7 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
 bool DiversePaths::getShortestPath( std::vector<double> _start,
 				    std::vector<double> _goal,
 				    std::vector<std::vector<int> > &_path,
-				    std::vector<int> _dist,
+				    int* _dist,
 				    bool _invert ) {
 
   if( !setGoal( _goal ) ) {
@@ -504,12 +515,13 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
   }
 
   std::vector<int> start(3);
-  std::vector<std::vector<int> > cellPath;
+  std::vector<int> goal(3);
   _path.clear();
 
   mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
+  mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] );
 
-  if( !getShortestPath( start, cellPath, _dist, _invert ) ) {
+  if( !getShortestPath( start, goal,  _path, _dist, _invert ) ) {
     printf( "[getShortestPath] Did not find a path. Exiting! \n" );
     return false;
   }
@@ -523,9 +535,15 @@ bool DiversePaths::getShortestPath( std::vector<double> _start,
  * @brief
  */
 bool DiversePaths::getShortestPath( std::vector<int> _start,
+				    std::vector<int> _goal,
 				    std::vector< std::vector<int> > &_path,
-				    std::vector<int> _dist,
+				    int* _dist,
 				    bool _invert ) {
+
+  // Set goal - important
+  if( !setGoal( _goal ) ) {
+    return false;
+  }
 
   int val = 0;
   int counter = 0;
@@ -536,27 +554,37 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
   std::vector<std::vector<int> > temp_path;
   int newx; int newy; int newz;
 
-  printf("Start: %d %d %d  \n", _start[0], _start[1], _start[2] );
-
   // Make sure the while loop eventually stops
   int max_path_length = mDimX*mDimY;
 
   temp_path.resize(0);
-  next_state[0] = _start[0]; next_state[1] = _start[1]; next_state[2] = _start[2];
+  next_state = _start;
 
   // Push first element
   temp_path.push_back( next_state );
 
   // Iterate until you get to the goal
-  while( !isGoal( next_state ) || counter > max_path_length ) {
+  int diff;
+  int dx; int dy; int dz;
+  const int* dpx; const int* dpy; const int* dpz;
+  int* pVal;
+  int min_ind;
+
+  while( !isGoal( next_state ) && counter < max_path_length ) {
     state = next_state;
     min_val = INFINITE_COST;
-
+    min_ind = 0;
     // Iterate through neighbors
+    pVal = & _dist[ xyzToIndex( state[0], state[1], state[2] ) ];
+
+    dpx = &NX[0]; dpy = &NY[0]; dpz = &NZ[0];
     for( int d = 0; d < DIRECTIONS3D; ++d ) {
-      newx = state[0] + NX[d];
-      newy = state[1] + NY[d];
-      newz = state[2] + NZ[d];
+      dx = *dpx; dy = *dpy; dz = *dpz;
+      newx = state[0] + dx;
+      newy = state[1] + dy;
+      newz = state[2] + dz;
+
+      dpx++; dpy++; dpz++;
 
       // Check cell is inside the map and with no obstacles
       if( newx < 0 || newx >= mDimX ||
@@ -565,30 +593,35 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
 	continue;
       }
 
-      val = _dist[ xyzToIndex( newx, newy, newz ) ];
+      //val = _dist[ xyzToIndex( newx, newy, newz ) ];
+      val = *( pVal + dx + dy*mDimX + dz*mDimX*mDimY );
+
       if( val >= INFINITE_COST ) {
 	continue;
       }
-
-      if( state[0] != newx && state[1] != newy && state[2] != newz ) {
-	val = val + mCost3Move;
+      diff = abs( dx ) + abs( dy ) + abs( dz );
+      if( diff == 1 ) {
+	val += mCost1Move;
       }
-      else if( ( state[1] != newy && state[2] != newz ) ||
-	       ( state[0] != newx && state[2] != newz ) ||
-	       ( state[0] != newx && state[1] != newy ) ) {
-	val = val + mCost2Move;
+      else if( diff == 2 ) {
+	val += mCost2Move;
       }
       else {
-	val = val + mCost1Move;
+	val += mCost3Move;
       }
+      
 
       if( val < min_val ) {
 	min_val = val;
-	next_state[0] = newx;
-	next_state[1] = newy;
-	next_state[2] = newz;
+	min_ind = d;
       }
     } // end for
+
+
+    next_state[0] = state[0] + NX[min_ind];
+    next_state[1] = state[1] + NY[min_ind];
+    next_state[2] = state[2] + NZ[min_ind];
+
     temp_path.push_back( next_state );
     counter++;
   } // end while
@@ -602,18 +635,15 @@ bool DiversePaths::getShortestPath( std::vector<int> _start,
   
   // If it found a path, check if it should be inverted
   int n = temp_path.size();
-  printf("Num elements temp path: %d \n", n);
-  int ind;
   _path.resize(0);
 
-  for( int i = 0; i < n; ++i ) {
-    if( _invert == false ) {
-      ind = i;
+  if( _invert == true ) {
+    for( int i = 0; i < n; ++i ) {
+      _path.push_back( temp_path[n-1-i] );
     }
-    else {
-      ind = n - 1 - i;
-    }
-    _path.push_back( temp_path[ind] );
+  }
+  else {
+    _path = temp_path;
   }
 
   return true;

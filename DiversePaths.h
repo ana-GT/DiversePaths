@@ -44,7 +44,7 @@ typedef struct {
  * @class DiversePaths
  * @brief
  * @author A. Huaman
- * @date 2012/08/23
+ * @date 2012/09/08
  */
 class DiversePaths {
   
@@ -79,37 +79,38 @@ class DiversePaths {
 
   std::vector<std::vector<double> > getMidPoints( std::vector<double> _start,
 						  std::vector<double> _goal,
-						  std::vector<int> _dStart,
-						  std::vector<int> _dGoal,
+						  int* _dStart,
+						  int* _dGoal,
 						  int _length );
 
   std::vector<std::vector<int> > getMidCells( std::vector<double> _start,
 					      std::vector<double> _goal,
-					      std::vector<int> _dStart,
-					       std::vector<int> _dGoal,
+					      int* _dStart,
+					      int* _dGoal,
 					      int _length ); 
   
   // Dijkstra
   bool runDijkstra( std::vector<double> _goal, 
-		    std::vector<int> &_dist );
+		    int* &_dist );
   void searchOneSourceAllPaths( State3D*** _stateSpace,
-				std::vector<int> &_dist );
+				int* _dist );
 
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector< std::vector<double> > &_path,
-			std::vector<int> _dist,
+			int* _dist,
 			bool _invert = false );
 
   bool getShortestPath( std::vector<double> _start,
 			std::vector<double> _goal,
 			std::vector<std::vector<int> > &_path,
-			std::vector<int> _dist,
+			int* _dist,
 			bool _invert = false ); 
 
   bool getShortestPath( std::vector<int> _start,
+			std::vector<int> _goal,
 			std::vector< std::vector<int> > &_path,
-			std::vector<int> _dist,
+			int* _dist,
 			bool _invert = false );
 
 
@@ -117,6 +118,7 @@ class DiversePaths {
   bool runAstar(std::vector<double> _start,
 		std::vector<double> _goal,
 		std::vector<std::vector<double> > &_path );
+
   std::vector<std::vector<double> > runAstar(std::vector<double> _start );
 
   bool searchOneToOnePath( std::vector<int> _start,
@@ -208,7 +210,7 @@ class DiversePaths {
   PFDistanceField* mDf;
   
   int mDistLength;
-  std::vector<int> mDist;
+  int* mDist;
 
   // A star variables
   State3D ***mS3D;
