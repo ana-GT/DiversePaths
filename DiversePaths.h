@@ -88,6 +88,16 @@ class DiversePaths {
 					      int* _dStart,
 					      int* _dGoal,
 					      int _length ); 
+
+  std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
+								std::vector<int> _cellStart,
+								std::vector<int> _cellGoal,
+								int* &_distStart,
+								int* &_distGoal );
+
+std::vector<std::vector<std::vector<int> > > getNoDeformablePaths( std::vector<std::vector<std::vector<int> > > &_pathSet,
+								   std::vector<std::vector<int> > &_refPath,
+								   int _numCheckPoints );
   
   // Dijkstra
   bool runDijkstra( std::vector<double> _goal, 

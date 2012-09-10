@@ -44,6 +44,82 @@ DiversePaths::~DiversePaths() {
 }
 
 /**
+ * @function getBoundedPaths
+ */
+std::vector<std::vector<std::vector<int> > > DiversePaths::getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
+									    std::vector<int> _cellStart,
+									    std::vector<int> _cellGoal,
+									    int* &_distStart,
+									    int* &_distGoal ) {
+
+  std::vector<std::vector<std::vector<int> > > midPaths;
+  std::vector<std::vector<int> > tempPath;
+  std::vector<std::vector<int> > tempFirst;
+  std::vector<std::vector<int> > tempLast;
+
+  for( int i = 0; i < _cellMidPoints.size(); ++i ) {
+   
+    getShortestPath( _cellMidPoints[i], _cellStart, tempFirst, _distStart, true );
+    getShortestPath( _cellMidPoints[i], _cellGoal, tempLast, _distGoal, false );
+  
+    // Make them together properly
+    tempPath.resize(0);
+    tempFirst.pop_back();
+    joinPaths( tempPath, tempFirst );
+    joinPaths( tempPath, tempLast );
+
+    midPaths.push_back( tempPath );
+  }
+
+  return midPaths;
+}
+
+/**
+ * @function getNoDeformablePaths
+ **/
+std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths( std::vector<std::vector<std::vector<int> > > &_pathSet,
+										 std::vector<std::vector<int> > &_refPath,
+										 int _numCheckPoints ) {
+  
+  // Get the points for _refPath
+  std::vector<std::vector<int> > refPoints;
+  for( int i = 0; i < _numCheckPoints; ++i ) {
+    refPoints.push_back( _refPath[ 0 + (i+1)*( _refPath.size() - 1 ) / (_numCheckPoints + 1) ] );
+  }
+
+  // Get the paths that are not first-degree deformable
+  std::vector<std::vector<std::vector<int> > > noDefPath;
+  std::vector<std::vector<int> > testLine;
+  std::vector<int> evPoint(3);
+
+  bool flag = false;
+
+  int N;
+  for( int i = 0; i < _pathSet.size(); ++i ) {
+    flag = false;
+    N = _pathSet[i].size();
+    for( int j = 0; j < _numCheckPoints; ++j ) {
+      evPoint = _pathSet[i][ 0 + (j+1)*(N-1)/(_numCheckPoints + 1) ];
+      testLine = getLine( refPoints[j][0],  refPoints[j][1],  refPoints[j][2],
+			  evPoint[0], evPoint[1], evPoint[2] );
+			  
+      for( int k = 0; k < testLine.size(); ++k ) {
+	if( !isValidCell( testLine[k][0], testLine[k][1], testLine[k][2] ) ) {
+	  noDefPath.push_back( _pathSet[i] );
+	  flag = true;
+	}
+	if( flag == true ) { break; }
+      }
+
+      if( flag == true ) { break; }
+    }
+
+  }  
+  return noDefPath;  
+}
+
+
+/**
  * @functino getDiversePaths2
  */
 std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( std::vector<double> _start,
@@ -89,31 +165,17 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   printf( "Initial number of mid points: %d \n", cellMidPoints.size() );
 
   //-- Find the paths for all the midPoints
-  std::vector<std::vector<std::vector<int> > > midPaths;
-  std::vector<std::vector<int> > tempPath;
-  std::vector<std::vector<int> > tempFirst;
-  std::vector<std::vector<int> > tempLast;
+  std::vector<std::vector<std::vector<int> > > boundedPaths;
 
+  //-- Get the paths limited by size
   printf( "--> Start cellMidPoint paths \n" );
   time_t ts = clock();
-  for( int i = 0; i < cellMidPoints.size(); ++i ) {
-   
-    getShortestPath( cellMidPoints[i], start, tempFirst, dStart, true );
-    getShortestPath( cellMidPoints[i], goal, tempLast, dGoal, false );
-  
-    // Make them together properly
-    tempPath.resize(0);
-    tempFirst.pop_back();
-    joinPaths( tempPath, tempFirst );
-    joinPaths( tempPath, tempLast );
-
-    midPaths.push_back( tempPath );
-  }
+  boundedPaths = getBoundedPaths( cellMidPoints, start, goal, dStart, dGoal );
   time_t tf = clock();
   double dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+  printf( "--> End %d bounded Paths: %f \n", boundedPaths.size(), dt );
 
-  printf( "--> End %d cellMidPoint paths: %f only for for  \n", cellMidPoints.size(), dt );
-
+   
   std::vector<std::vector<int> > notConnectedCells;
   std::vector<int> midPathCell(3);
   
@@ -122,29 +184,27 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   std::vector<std::vector<int> > pathSM; // Start - Middle
   std::vector<std::vector<int> > pathMG; // Middle - Goal
 
+  int numCheckPoints = 5;
+  std::vector<std::vector<std::vector<int> > > noDeformPaths;
+
   for( int i = 1; i < mNumPaths; ++i ) {
 
-    // Get the latest middle point
-    midPathCell = cellPath[ cellPath.size() / 2 ];
-    cellMidPoints = getNoFreeLineCells( cellMidPoints, midPathCell );
-    printf("[%d] Trimmed Mid Points: %d \n", i, cellMidPoints.size() );  
-
-    // Get a new middle point
-    thePoint = cellMidPoints[ cellMidPoints.size() / 2 ];
-
-    //-- Find path with thePoint in the middle
-    pathSM.resize(0);  pathMG.resize(0);
-
-    getShortestPath( thePoint, start, pathSM, dStart, true );
-    getShortestPath( thePoint, goal, pathMG, dGoal, false );
+    // Get NoDeformable Paths
+    printf("Start Deformable paths \n");
+    ts = clock();
+    noDeformPaths = getNoDeformablePaths( boundedPaths, cellPath, numCheckPoints );
+    tf = clock();
+    dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+    printf( "--> End %d Deformable Paths: %f with %d checkpoints \n", noDeformPaths.size(), dt, numCheckPoints );
   
-    // Make them together properly
-    cellPath.resize(0);
-    pathSM.pop_back();
-    joinPaths( cellPath, pathSM );
-    joinPaths( cellPath, pathMG );
-    
+    // Get the middle of them
+    cellPath = noDeformPaths[ noDeformPaths.size() / 2 ];
+    // Save it
     paths.push_back( getWorldPoints(cellPath) );
+
+    // Refresh
+    boundedPaths.clear();
+    boundedPaths = noDeformPaths;
   }
 
   for( int i = 0; i < mNumPaths; ++i ) {
