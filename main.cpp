@@ -45,7 +45,7 @@ int main( int argc, char* argv[] ) {
   // Paths
   std::vector<std::vector<std::vector<double> > > paths;
   std::vector<std::vector<double> > midPoints;  
-  paths = dp.getDiversePaths( start, goal, numPaths, midPoints );
+  paths = dp.getDiversePaths2( start, goal, numPaths, midPoints );
   /*
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();

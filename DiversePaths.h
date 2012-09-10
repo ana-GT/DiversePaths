@@ -64,37 +64,36 @@ class DiversePaths {
   ~DiversePaths();
 
   // Diverse Paths
-  std::vector<std::vector<std::vector<double> > > getDiversePaths( std::vector<double> _start,
-								   std::vector<double> _goal,
-								   int _numPaths,
-								   std::vector<std::vector<double> > &_midPoints );
 
   std::vector<std::vector<std::vector<double> > > getDiversePaths2( std::vector<double> _start,
 								    std::vector<double> _goal,
 								    int _numPaths,
-								    std::vector<std::vector<double> > &_midPoints );
+								    std::vector<std::vector<double> > &_midPoints,
+								    float _boundFactor = 2.0 );
+
+  int getPathCost( const std::vector<std::vector<int> > &_path );
 
   std::vector<std::vector<int> > getNoFreeLineCells( std::vector<std::vector<int> > _points, 
 						     std::vector<int> _evalPoint );
 
-  std::vector<std::vector<double> > getMidPoints( std::vector<double> _start,
-						  std::vector<double> _goal,
-						  int* _dStart,
+  std::vector<std::vector<double> > getMidPoints( int* _dStart,
 						  int* _dGoal,
-						  int _length );
+						  int _length,
+						  float _boundFactor = 1.5 );
 
-  std::vector<std::vector<int> > getMidCells( std::vector<double> _start,
-					      std::vector<double> _goal,
-					      int* _dStart,
+  std::vector<std::vector<int> > getMidCells( int* _dStart,
 					      int* _dGoal,
-					      int _length ); 
+					      int _length,
+					      float _boundFactor = 1.5 ); 
 
-  std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
-								std::vector<int> _cellStart,
-								std::vector<int> _cellGoal,
-								int* &_distStart,
-								int* &_distGoal );
-
+std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
+							      std::vector<int> _cellStart,
+							      std::vector<int> _cellGoal,
+							      int* &_distStart,
+							      int* &_distGoal,
+							      int _refLength,
+							      double _boundFactor );
+ 
 std::vector<std::vector<std::vector<int> > > getNoDeformablePaths( std::vector<std::vector<std::vector<int> > > &_pathSet,
 								   std::vector<std::vector<int> > &_refPath,
 								   int _numCheckPoints );

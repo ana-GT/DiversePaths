@@ -37,7 +37,7 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.1, 0.4, 0.6, bx, by, bz );
 
   // Settings parameters
-  int cost = 10; int radius = 3; int numPaths = 4;
+  int cost = 10; int radius = 1; int numPaths = 3;
 
   DiversePaths dp( &pf, radius, cost );
 
@@ -50,12 +50,17 @@ int main( int argc, char* argv[] ) {
   // Paths
   std::vector<std::vector<double> > midPoints;
   std::vector<std::vector<std::vector<double> > > paths;
-  std::vector<int> dStart;
-  std::vector<int> dGoal;
 
   // Get paths
-  paths = dp.getDiversePaths2( start, goal, numPaths, midPoints );
+  float boundFactor = 2.0;
+  time_t ts = clock();
+  paths = dp.getDiversePaths2( start, goal, numPaths, midPoints, boundFactor );
+  time_t tf = clock();
+  double dt = (double) ( tf - ts ) / CLOCKS_PER_SEC;
+  printf( "** getDiversePaths2 time: %f \n", dt );
+
   printf( "Num points: %d \n", midPoints.size() );
+
   // Create viewer
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = createViewer();
 
@@ -64,13 +69,15 @@ int main( int argc, char* argv[] ) {
   
   dp.visualizePaths( viewer, paths, true );
 
-  // View balls
+  // MidPoints:  View balls
+  /*
   for( int i = 0; i < midPoints.size(); ++i ) {
     viewBall( midPoints[i][0], midPoints[i][1], midPoints[i][2],
 	      0.025, viewer, 0, 0, 255 );
   } 
-  
-  // viewPoints( midPoints, viewer, 255,0,255 );
+  */
+  // MidPoints: View pointcloud (NOT BOTH Balls and pointcloud)
+   viewPoints( midPoints, viewer, 255,0,255 );
 
   // Loop
   while( !viewer->wasStopped() ) {
