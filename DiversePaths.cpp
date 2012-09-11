@@ -4,6 +4,7 @@
  * @date 2012/08/21
  */
 #include "DiversePaths.h"
+#include <algorithm>
 #include <ctime>
 
 const int DiversePaths::NX[DIRECTIONS3D] = {  0, 0,  0, 1, 0, -1,  1,  0, -1,  0, 1, 0, -1,  0,  1, 1, -1, -1,  -1,-1,1, 1,-1,-1, 1, 1 };
@@ -51,13 +52,13 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
 										std::vector<double> _goal,
 										int _numPaths,
 										std::vector<std::vector<double> > &_midPoints,
-										float _boundFactor ) {
+										float _boundFactor,
+										int _numCheckPoints ) {
   printf("getDiversePaths2 \n");
   mNumPaths = _numPaths;
 
   std::vector<std::vector<std::vector<double> > > paths;
   std::vector<std::vector<int> > cellPath;
-  std::vector<std::vector<int> > cellMidPoints;
 
   int* dGoal;
   int* dStart;
@@ -87,42 +88,60 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   
   //-- 3. Get the paths limited by size
   std::vector<std::vector<std::vector<int> > > boundedPaths;
+  std::vector<int> boundedPathCosts;
 
   printf( "--> Start Bounded Paths \n" );
   time_t ts = clock();
-  boundedPaths = getBoundedPaths( cellMidPoints, start, goal, dStart, dGoal, getPathCost( cellPath ), _boundFactor );
+  boundedPaths = getBoundedPaths( boundedPathCosts, start, goal, 
+				  dStart, dGoal, 
+				  getPathCost( cellPath ), _boundFactor );
   time_t tf = clock();
   double dt = (double) (tf - ts) / CLOCKS_PER_SEC;
   printf( "--> End %d bounded Paths: %f \n", boundedPaths.size(), dt );
      
-  int numCheckPoints = 8;
   std::vector<std::vector<std::vector<int> > > noDeformPaths;
+  std::vector<int> noDeformPathCosts;
 
   for( int i = 1; i < mNumPaths; ++i ) {
 
     // Get NoDeformable Paths
-    printf("Start Deformable paths \n");
+    printf("[%d] Start Deformable paths with input bounded paths of %d \n", i, boundedPaths.size() );
     ts = clock();
-    noDeformPaths = getNoDeformablePaths( boundedPaths, cellPath, numCheckPoints );
+    noDeformPaths = getNoDeformablePaths( boundedPaths, boundedPathCosts, 
+					  noDeformPathCosts, cellPath, _numCheckPoints );
     tf = clock();
     dt = (double) (tf - ts) / CLOCKS_PER_SEC;
-    printf( "--> End %d Deformable Paths: %f with %d checkpoints \n", noDeformPaths.size(), dt, numCheckPoints );
+    printf( "--> [%d] End %d Deformable Paths: %f with %d checkpoints \n", i, noDeformPaths.size(), dt, _numCheckPoints );
+
+    // Check that there are candidates, otherwise get out of the loop
+    if( noDeformPaths.size() == 0 ) {
+      printf("No more deformPaths, exiting the loop at iteration [%d] \n", i );
+      break;
+    }
   
-    // Get the middle of them
-    cellPath = noDeformPaths[ noDeformPaths.size() / 2 ];
+    // Get the smallest paths from the noDeformed guys
+    int minCost;
+    std::vector<std::vector<std::vector<int> > > minPaths;
+    minCost = *min_element( noDeformPathCosts.begin(), noDeformPathCosts.end()  );
+    for( int i = 0; i < noDeformPathCosts.size(); ++i ) {
+      if( noDeformPathCosts[i] == minCost ) {
+	minPaths.push_back( noDeformPaths[i] );
+      }
+    }
+
+    printf("Got %d noDeformable paths with a minimum cost of %d, picking one in the middle \n", minPaths.size(), minCost );
+    cellPath = minPaths[ minPaths.size() / 2 ];
+
     // Save it
     paths.push_back( getWorldPoints(cellPath) );
 
     // Refresh
-    boundedPaths.resize(0);
+    boundedPaths.resize(0); boundedPathCosts.resize(0);
     boundedPaths = noDeformPaths;
+    boundedPathCosts = noDeformPathCosts;
     noDeformPaths.resize(0);
   }
-  /*
-  for( int i = 0; i < mNumPaths; ++i ) {
-    _midPoints.push_back( paths[i][ paths[i].size() / 2 ] );
-  }
-  */
+
   std::vector<std::vector<int> > midCells;
   for( int i = 0; i < boundedPaths.size(); ++i ) {
     midCells.push_back( boundedPaths[i][ boundedPaths[i].size() / 2 ] );
@@ -130,6 +149,52 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   _midPoints = getWorldPoints( midCells );
 
   return paths;
+}
+
+/**
+ * @function getCheckPointLines
+ */
+std::vector<std::vector<std::vector<double> > > DiversePaths::getCheckPointLines( const std::vector<std::vector<double> > &_pathA,
+									       const std::vector<std::vector<double> > &_pathB,
+									       int _numCheckPoints ) {
+
+  // Convert paths to cells
+  std::vector<std::vector<int> > cellPathA = getCellPoints( _pathA );
+  std::vector<std::vector<int> > cellPathB = getCellPoints( _pathB );
+
+  std::vector<std::vector<std::vector<double> > > checkPointLines;
+  std::vector<std::vector<std::vector<int> > > checkPointCellLines;
+  checkPointCellLines = getCheckPointLines( cellPathA, cellPathB, _numCheckPoints );
+
+  for( int i = 0; i < _numCheckPoints; ++i ) {
+    checkPointLines.push_back( getWorldPoints(checkPointCellLines[i]) );
+  }
+
+  return checkPointLines;
+}
+
+
+/**
+ * @function getCheckPointLines
+ */
+std::vector<std::vector<std::vector<int> > > DiversePaths::getCheckPointLines( const std::vector<std::vector<int> > &_pathA,
+									       const std::vector<std::vector<int> > &_pathB,
+									       int _numCheckPoints ) {
+
+  std::vector<std::vector<std::vector<int> > > checkPointLines;
+  std::vector<std::vector<int> > checkPointsA;
+  std::vector<std::vector<int> > checkPointsB;
+
+  checkPointsA = getCheckPoints( _pathA, _numCheckPoints );
+  checkPointsB = getCheckPoints( _pathB, _numCheckPoints );
+
+  for( int i = 0; i < _numCheckPoints; ++i ) {
+ 
+    checkPointLines.push_back( getLine( checkPointsA[i][0], checkPointsA[i][1], checkPointsA[i][2],
+    					checkPointsB[i][0], checkPointsB[i][1], checkPointsB[i][2] ) );
+  }
+
+  return checkPointLines;
 }
 
 /**
@@ -164,7 +229,6 @@ int DiversePaths::getPathCost( const std::vector<std::vector<int> > &_path ) {
   return dist;
 }
 
-
 /**
  * @function getNoFreeLineCells
  */
@@ -172,25 +236,40 @@ std::vector<std::vector<int> > DiversePaths::getNoFreeLineCells( std::vector<std
 								 std::vector<int> _evalPoint ) {
 
   std::vector<std::vector<int> > noFree;
-  std::vector<std::vector<int> > testLine;
 
   for( int i = 0; i < _points.size(); ++i ) {
-    testLine = getLine( _points[i][0], _points[i][1], _points[i][2],
-			_evalPoint[0], _evalPoint[1], _evalPoint[2] );
-    for( int j = 0; j < testLine.size(); ++j ) {
-      if( !isValidCell( testLine[j][0], testLine[j][1], testLine[j][2] ) ) {
-	noFree.push_back( _points[i] );
-	break;
+    if( testFreeLine( _evalPoint, _points[i] ) == false ) {
+      noFree.push_back( _points[i] );
       }
+  }
+
+  return noFree;
+}
+
+/**
+ * @function testFreeLine
+ */
+bool DiversePaths::testFreeLine( const std::vector<int> &_pointA, 
+				 const std::vector<int> &_pointB ){
+
+  std::vector<std::vector<int> > testLine;
+  bool flag = true;
+  testLine = getLine( _pointA[0], _pointA[1], _pointA[2],
+		      _pointB[0], _pointB[1], _pointB[2] );
+
+  for( int j = 0; j < testLine.size(); ++j ) {
+    if( !isValidCell( testLine[j][0], testLine[j][1], testLine[j][2] ) ) {
+      flag = false; break;
     }
   }
-  return noFree;
+  if( flag == false ) { return false; }
+  else { return true; }  
 }
 
 /**
  * @function getBoundedPaths
  */
-std::vector<std::vector<std::vector<int> > > DiversePaths::getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
+std::vector<std::vector<std::vector<int> > > DiversePaths::getBoundedPaths( std::vector<int> &_pathCosts,
 									    std::vector<int> _cellStart,
 									    std::vector<int> _cellGoal,
 									    int* &_distStart,
@@ -203,12 +282,13 @@ std::vector<std::vector<std::vector<int> > > DiversePaths::getBoundedPaths( std:
   std::vector<std::vector<int> > tempLast;
 
   //-- 1. Get the midpoints ( cells )
-  _cellMidPoints = getMidCells( _distStart, _distGoal, _refDist, _boundFactor );
+  std::vector<std::vector<int> > cellMidPoints;
+  cellMidPoints = getMidCells( _pathCosts, _distStart, _distGoal, _refDist, _boundFactor );
 
-  for( int i = 0; i < _cellMidPoints.size(); ++i ) {
+  for( int i = 0; i < cellMidPoints.size(); ++i ) {
    
-    getShortestPath( _cellMidPoints[i], _cellStart, tempFirst, _distStart, true );
-    getShortestPath( _cellMidPoints[i], _cellGoal, tempLast, _distGoal, false );
+    getShortestPath( cellMidPoints[i], _cellStart, tempFirst, _distStart, true );
+    getShortestPath( cellMidPoints[i], _cellGoal, tempLast, _distGoal, false );
   
     // Make them together properly
     tempPath.resize(0);
@@ -226,57 +306,40 @@ std::vector<std::vector<std::vector<int> > > DiversePaths::getBoundedPaths( std:
 /**
  * @function getNoDeformablePaths
  **/
-std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths( std::vector<std::vector<std::vector<int> > > &_pathSet,
-										 std::vector<std::vector<int> > &_refPath,
+std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths( const std::vector<std::vector<std::vector<int> > > &_pathSet,
+										 const std::vector<int> &_pathCosts,
+										 std::vector<int> &_noDefPathCosts,
+										 const std::vector<std::vector<int> > &_refPath,
 										 int _numCheckPoints ) {
   
+  // Get ready
+  _noDefPathCosts.resize(0);
+
   // Get the points for _refPath
-  std::vector<std::vector<int> > refPoints;
-  for( int i = 0; i < _numCheckPoints; ++i ) {
-    refPoints.push_back( _refPath[ 0 + (i+1)*( _refPath.size() - 1 ) / (_numCheckPoints + 1) ] );
-  }
+  std::vector<std::vector<int> > refPoints = getCheckPoints( _refPath, _numCheckPoints );
+  std::vector<std::vector<int> > evalPoints;
 
   // Get the paths that are not first-degree deformable
   std::vector<std::vector<std::vector<int> > > noDefPaths;
-  std::vector<std::vector<int> > testLine;
-  std::vector<int> evPoint(3);
 
-  bool flag;
-
-  int N;
-  int minBlockedPoints = _numCheckPoints / 2 + 1;
+  int minBlockedPoints = _numCheckPoints / 2;
   int count;
-
-  flag = false;
-  count = 0;
-  float temp;
+  
   for( int i = 0; i < _pathSet.size(); ++i ) {
-
-    N = _pathSet[i].size();
-    temp = (float)( N-1)/(_numCheckPoints + 1 );
+    evalPoints = getCheckPoints( _pathSet[i], _numCheckPoints );
+    count = 0;
 
     for( int j = 0; j < _numCheckPoints; ++j ) {
-      
-      evPoint = _pathSet[i][ 0 + (int)( (j+1)*temp ) ];
-      testLine = getLine( refPoints[j][0],  refPoints[j][1],  refPoints[j][2],
-			  evPoint[0], evPoint[1], evPoint[2] );
-      
-      for( int k = 0; k < testLine.size(); ++k ) {
-	if( !isValidCell( testLine[k][0], testLine[k][1], testLine[k][2] ) ) {
-	  flag = true;
-	}
-	if( flag == true ) { break; } // if-for testLine
-      }
 
-      if( flag == true ) { 
+      if( testFreeLine( evalPoints[j], refPoints[j] ) == false ) {
 	count++;
-	flag = false;
 	if( count == minBlockedPoints ) {
 	  noDefPaths.push_back( _pathSet[i] );
-	  count = 0;
+	  _noDefPathCosts.push_back( _pathCosts[i] );
 	  break; 
 	}
-      } // if-for numCheckPoints
+      }
+
     } // end for numCheckPoints
 
   }  // end for _pathSet.size() 
@@ -285,9 +348,27 @@ std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths(
 
 
 /**
+ * @function getCheckPoints
+ */
+std::vector<std::vector<int> > DiversePaths::getCheckPoints( const std::vector<std::vector<int> > &_path,
+							     int _numCheckPoints ) {
+
+  std::vector<std::vector<int> > checkPoints;
+  int N = _path.size();
+  float temp = (float)( N-1)/(_numCheckPoints + 1 );
+
+  for( int i = 0; i < _numCheckPoints; ++i ) {
+    checkPoints.push_back( _path[ 0 + (int)( (i+1)*temp ) ] );
+  }
+  return checkPoints;
+}
+
+
+/**
  * @function getMidPoints
  */
-std::vector<std::vector<double> > DiversePaths::getMidPoints( int* _dStart,
+std::vector<std::vector<double> > DiversePaths::getMidPoints( std::vector<int> &_pathCosts, 
+							      int* _dStart,
 							      int* _dGoal,
 							      int _refDist,
 							      float _boundFactor ) {
@@ -296,7 +377,7 @@ std::vector<std::vector<double> > DiversePaths::getMidPoints( int* _dStart,
   std::vector<std::vector<double> > midPoints;
   std::vector<double> p(3);
 
-  cellMidPoints = getMidCells( _dStart, _dGoal, _refDist, _boundFactor );
+  cellMidPoints = getMidCells( _pathCosts, _dStart, _dGoal, _refDist, _boundFactor );
 
   for( int i = 0; i < cellMidPoints.size(); ++i ) {
     mDf->gridToWorld( cellMidPoints[i][0], cellMidPoints[i][1], cellMidPoints[i][2], p[0], p[1], p[2] );
@@ -310,28 +391,36 @@ std::vector<std::vector<double> > DiversePaths::getMidPoints( int* _dStart,
 /**
  * @function getMidCells
  */
-std::vector<std::vector<int> > DiversePaths::getMidCells( int* _dStart,
+std::vector<std::vector<int> > DiversePaths::getMidCells( std::vector<int> &_pathCosts, 
+							  int* _dStart,
 							  int* _dGoal,
 							  int _refDist,
 							  float _boundFactor ) {
   
+  _pathCosts.resize(0);
+
   std::vector<std::vector<int> > midPoints;
   std::vector<int> p(3);
+  int ds; int dg; int dsg; int ind;
 
   for( int x = 0; x < mDimX; ++x ) {
     for( int y = 0; y < mDimY; ++y ) {
       for( int z = 0; z < mDimZ; ++z ) {
 
-	int ind = xyzToIndex( x, y, z );
+	ind = xyzToIndex( x, y, z );
 	if( _dStart[ind] != INFINITE_COST ) {
 	  if( _dGoal[ind] != INFINITE_COST ) {	    
-	    int ds = _dStart[ind];
-	    int dg = _dGoal[ind];
+	    ds = _dStart[ind];
+	    dg = _dGoal[ind];
+	    dsg = ds + dg;
 	    if( ds < dg + 2*mCost1Move && 
 		ds > dg - 2*mCost1Move && 
-		ds + dg < ( _boundFactor*_refDist ) ) {
+		dsg < ( _boundFactor*_refDist ) ) {
+
 	      p[0] = x; p[1] = y; p[2] = z;
 	      midPoints.push_back( p );
+	      _pathCosts.push_back(dsg);
+
 	    }
 	  } // if _dGoal[ind] != INF
 	} // if _dStart[ind]  != INF
@@ -1079,12 +1168,22 @@ bool DiversePaths::isGoal( const std::vector<int> &_state ) {
 }
 
 /**
+ * @function isObstacleCell
+ */
+bool DiversePaths::isObstacleCell( const int &_x, const int &_y, const int &_z ) {
+  if( mDf->getDistanceFromCell( _x, _y, _z ) == 0 ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * @function DiversePaths
  * @brief
  */
 bool DiversePaths::isValidCell( const int _x, const int _y, const int _z ) {
-
-  if( mDf->getDistanceFromCell( _x, _y, _z ) <= mRadiusM ) {
+  // Took away the = to see how it goes
+  if( mDf->getDistanceFromCell( _x, _y, _z ) < mRadiusM ) {
     return false;
   }
 
@@ -1477,13 +1576,30 @@ std::vector<std::vector<double> > DiversePaths::getPointsAsFarAsFromSet( PFDista
 /**
  * @function getWorldPoints
  */
-std::vector<std::vector<double> > DiversePaths::getWorldPoints( std::vector<std::vector<int> > _cellPath ) {
+std::vector<std::vector<double> > DiversePaths::getWorldPoints( const std::vector<std::vector<int> > &_cellPath ) {
 
   std::vector<std::vector<double> > path;
   std::vector<double> p(3);
 
   for( int i = 0; i < _cellPath.size(); ++i ) {
     mDf->gridToWorld( _cellPath[i][0], _cellPath[i][1], _cellPath[i][2],
+		      p[0], p[1], p[2] );
+    path.push_back( p );
+  }
+
+  return path;
+}
+
+/**
+ * @function getCellPoints
+ */
+std::vector<std::vector<int> > DiversePaths::getCellPoints( const std::vector<std::vector<double> > &_worldPath ) {
+  
+  std::vector<std::vector<int> > path;
+  std::vector<int> p(3);
+
+  for( int i = 0; i < _worldPath.size(); ++i ) {
+    mDf->worldToGrid( _worldPath[i][0], _worldPath[i][1], _worldPath[i][2],
 		      p[0], p[1], p[2] );
     path.push_back( p );
   }

@@ -182,13 +182,12 @@ std::vector<std::vector<int> > getLine( int _p1x, int _p1y, int _p1z,
   std::vector<std::vector<int> > line;
   std::vector<int> p(3);
   int x; int y; int z;
-  int size = 0;
-  while( thereIsNextPoint && size < 20 ) {
+ 
+  while( thereIsNextPoint ) {
     get_current_point3d( &b3d, &x, &y, &z );
     p[0] = x; p[1] = y; p[2] = z;
     line.push_back( p );
     thereIsNextPoint = get_next_point3d( &b3d );
-    size++;
   } 
 
   return line;

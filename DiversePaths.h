@@ -69,35 +69,53 @@ class DiversePaths {
 								    std::vector<double> _goal,
 								    int _numPaths,
 								    std::vector<std::vector<double> > &_midPoints,
-								    float _boundFactor = 2.0 );
+								    float _boundFactor = 2.0,
+								    int _numCheckPoints = 8 );
 
+
+std::vector<std::vector<std::vector<double> > > getCheckPointLines( const std::vector<std::vector<double> > &_pathA,
+								    const std::vector<std::vector<double> > &_pathB,
+								    int _numCheckPoints );
+  std::vector<std::vector<std::vector<int> > > getCheckPointLines( const std::vector<std::vector<int> > &_pathA,
+								   const std::vector<std::vector<int> > &_pathB,
+								   int _numCheckPoints );
+  
   int getPathCost( const std::vector<std::vector<int> > &_path );
 
   std::vector<std::vector<int> > getNoFreeLineCells( std::vector<std::vector<int> > _points, 
 						     std::vector<int> _evalPoint );
 
-  std::vector<std::vector<double> > getMidPoints( int* _dStart,
+  bool testFreeLine( const std::vector<int> &_pointA, const std::vector<int> &_pointB );
+
+  std::vector<std::vector<int> > getCheckPoints( const std::vector<std::vector<int> > &_path,
+						 int _numCheckPoints );
+  
+  std::vector<std::vector<double> > getMidPoints( std::vector<int> &_pathCosts, 
+						  int* _dStart,
 						  int* _dGoal,
 						  int _length,
 						  float _boundFactor = 1.5 );
-
-  std::vector<std::vector<int> > getMidCells( int* _dStart,
+  
+  std::vector<std::vector<int> > getMidCells( std::vector<int> &_pathCosts, 
+					      int* _dStart,
 					      int* _dGoal,
 					      int _length,
 					      float _boundFactor = 1.5 ); 
 
-std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<std::vector<int> > &_cellMidPoints,
+std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<int> &_pathCosts,
 							      std::vector<int> _cellStart,
 							      std::vector<int> _cellGoal,
 							      int* &_distStart,
 							      int* &_distGoal,
 							      int _refLength,
 							      double _boundFactor );
- 
-std::vector<std::vector<std::vector<int> > > getNoDeformablePaths( std::vector<std::vector<std::vector<int> > > &_pathSet,
-								   std::vector<std::vector<int> > &_refPath,
-								   int _numCheckPoints );
   
+ std::vector<std::vector<std::vector<int> > > getNoDeformablePaths( const std::vector<std::vector<std::vector<int> > > &_pathSet,
+								    const std::vector<int> &_pathCosts,
+								    std::vector<int> &_noDefPathCosts,
+								    const std::vector<std::vector<int> > &_refPath,
+								    int _numCheckPoints );
+ 
   // Dijkstra
   bool runDijkstra( std::vector<double> _goal, 
 		    int* &_dist );
@@ -167,10 +185,12 @@ std::vector<std::vector<std::vector<int> > > getNoDeformablePaths( std::vector<s
   inline int xyzToIndex( int _x, int _y, int _z );
   bool isGoal( const std::vector<int> &_state );
   bool isGoal( const int &_x, const int &_y, const int &_z );
+  bool isObstacleCell( const int &_x, const int &_y, const int &_z );
   bool isValidCell( const int _x, const int _y, const int _z );  
 
   //-- Utilities
-  std::vector<std::vector<double> > getWorldPoints( std::vector<std::vector<int> > _cellPath );
+  std::vector<std::vector<double> > getWorldPoints( const std::vector<std::vector<int> > &_cellPath );
+  std::vector<std::vector<int> > getCellPoints( const std::vector<std::vector<double> > &_worldPath );
   void joinPaths( std::vector<std::vector<double> > &_origPath,
 		  std::vector<std::vector<double> > _addedPath );
   void joinPaths( std::vector<std::vector<int> > &_origPath,
