@@ -1,8 +1,8 @@
 /**
  * @file test1.cpp
  * @author A. Huaman Q.
- * @date 2012-09-14
- * @brief Drawing simulation: Caja con agujero en el medio
+ * @date 2012-09-08
+ * @brief Test case 1: Caja con agujero en el medio
  */
 
 #include <stdio.h>
@@ -46,9 +46,9 @@ int main( int argc, char* argv[] ) {
 
   // Set goal and start
   std::vector<double> goal(3);
-  goal[0] = 0.5; goal[1] = 0.9; goal[2] = 0.75;
+  goal[0] = 0.5; goal[1] = 0.9; goal[2] = 0.5;
   std::vector<double> start(3);
-  start[0] = 0.5; start[1] = 0.1; start[2] = 0.25;
+  start[0] = 0.5; start[1] = 0.1; start[2] = 0.5;
 
   // Paths
   std::vector<std::vector<double> > midPoints;
@@ -70,25 +70,50 @@ int main( int argc, char* argv[] ) {
 
   // View the path
   reset_PCL_Tools_counters();
-
+  
   // MidPoints: View pointcloud (NOT BOTH Balls and pointcloud)
-  // viewPoints( midPoints, viewer, 255,0,255 );
-
+  viewPoints( midPoints, viewer, 0, 255, 0 );
+  /*
   // Get checkPoint Lines
   int ind = 1;
   std::vector<std::vector<std::vector<double> > > checkLines;
    if( paths.size() > 1 ) {
-     checkLines = dp.getCheckPointLines( paths[0], paths[ind], numCheckPoints );
+     //checkLines = dp.getCheckPointLines( paths[0], paths[ind], numCheckPoints );
    } else {
      printf( " !! Only one path, no drawing checkPoint lines! \n" );
    }
    
    for( int i = 0; i < checkLines.size(); ++i ) {
-       dp.visualizePath( viewer, checkLines[i], false, 0, 200, 0, 0.008, 0, 0, 200 );
+     //  dp.visualizePath( viewer, checkLines[i], false, 0, 200, 0, 0.008, 0, 0, 200 );
    }
 
-   dp.visualizePath( viewer, paths[0], false, 0, 100, 0 );
-   dp.visualizePath( viewer, paths[ind], true, 255, 69, 0 );
+   dp.visualizePath( viewer, paths[0], true, 0, 100, 0 );
+   //dp.visualizePath( viewer, paths[ind], true, 255, 69, 0 );
+   */
+
+  // View a number of bounded Paths
+  int numSamples = 20;
+  int sample;
+  int r; int g; int b;
+
+  srand( time(NULL) );
+
+  for( int i = 0; i < numSamples; ++i ) {
+    // Draw the path  
+    sample = rand() % paths.size();  
+    r = rand() % 255; r = 255;
+    g = rand() % 255; g = 69;
+    b = rand() % 255; b = 0;
+    //dp.visualizePath( viewer, paths[sample], false, r, g, b );
+    //viewBall( midPoints[sample][0], midPoints[sample][1], midPoints[sample][2], 0.01, viewer, 0, 0, 255 );
+    
+    if( i == numSamples - 1 ) {
+      //dp.visualizePath( viewer, paths[sample], true, r, g, b );
+    }
+  }
+  viewBall( start[0], start[1], start[2], 0.03, viewer, 255, 0, 0 );
+  viewBall( goal[0], goal[1], goal[2], 0.03, viewer, 255, 0, 0 );
+  dp.visualizeObstacles( viewer, 0, 0, 200 );
 
   // Loop
   while( !viewer->wasStopped() ) {

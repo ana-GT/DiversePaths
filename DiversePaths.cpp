@@ -148,6 +148,16 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   }
   _midPoints = getWorldPoints( midCells );
 
+  ////////////////////////////
+  // Only to visualize
+  paths.resize(0);
+  for( int i = 0; i < boundedPaths.size(); ++i ) {
+    paths.push_back( getWorldPoints(boundedPaths[i]));
+  } 
+  ////////////////////////////
+
+
+
   return paths;
 }
 
@@ -1615,18 +1625,19 @@ std::vector<std::vector<int> > DiversePaths::getCellPoints( const std::vector<st
 void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 				  std::vector<std::vector<double> > _path,
 				  bool _viewObstacles,
-				  int _r, int _g, int _b ) {
+				  int _r, int _g, int _b, float _ballRadius,
+				  int _br, int _bg, int _bb ) {
 
   
   //-- View paths
   printf("Viewing path from (%f %f %f) to (%f %f %f ) \n", _path[0][0], _path[0][1], _path[0][2],
 	 _path[_path.size() - 1][0], _path[_path.size() - 1][1], _path[_path.size() - 1][2]);
   viewPath( _path, _viewer, _r, _g, _b );
-  viewBall( _path[0][0], _path[0][1], _path[0][2], 0.02, _viewer );
+  viewBall( _path[0][0], _path[0][1], _path[0][2], _ballRadius, _viewer, _br, _bg, _bb );
   viewBall( _path[_path.size() - 1][0], 
 	    _path[_path.size() - 1][1], 
 	    _path[_path.size() - 1][2], 
-	    0.02, _viewer );    
+	    _ballRadius, _viewer, _br, _bg, _bb );    
   
   if( _viewObstacles ) {
     
@@ -1634,26 +1645,18 @@ void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisua
     int obsR; int obsG; int obsB;
     obsR = 0; obsG = 0; obsB = 255;
     
-    //-- Get obstacles
-    std::vector<Eigen::Vector3d> obstacles;
-    mDf->getPointsFromField( obstacles );
-    
-    //-- Put them in PCD
-    pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud = writePCD( obstacles );
-    
-    
-    viewPCD( obstacleCloud, _viewer, obsR, obsG, obsB );
+    visualizeObstacles( _viewer, obsR, obsG, obsB );
   }
 
 }
-
 
 /**
  * @function visualizePaths
  */
 void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 				   std::vector<std::vector<std::vector<double> > > _paths,
-				   bool _viewObstacles ) {
+				   bool _viewObstacles, float _ballRadius,
+				   int _br, int _bg, int _bb ) {
 
 
   //-- Get counters ready
@@ -1666,7 +1669,7 @@ void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisu
     r = (int) ( rand() % 255 );
     g = (int) ( rand() % 255 );
     b = (int) ( rand() % 255 );
-    visualizePath( _viewer, _paths[i], false, r, g, b ); 
+    visualizePath( _viewer, _paths[i], false, r, g, b, _ballRadius, _br, _bg, _bb ); 
   }
 
   if( _viewObstacles ) {
@@ -1675,6 +1678,16 @@ void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisu
     int obsR; int obsG; int obsB;
     obsR = 0; obsG = 0; obsB = 255;
     
+    visualizeObstacles( _viewer, obsR, obsG, obsB );
+  } 
+}
+
+/**
+ * @function viewObstacles
+ */
+void DiversePaths::visualizeObstacles( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+				       int _r, int _g, int _b) {
+      
     //-- Get obstacles
     std::vector<Eigen::Vector3d> obstacles;
     mDf->getPointsFromField( obstacles );
@@ -1682,7 +1695,6 @@ void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisu
     //-- Put them in PCD
     pcl::PointCloud<pcl::PointXYZ>::Ptr obstacleCloud = writePCD( obstacles );
     
-    
-    viewPCD( obstacleCloud, _viewer, obsR, obsG, obsB );
-  } 
+    //-- View them
+    viewPCD( obstacleCloud, _viewer, _r, _g, _b );
 }

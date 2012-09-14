@@ -210,11 +210,18 @@ std::vector<std::vector<std::vector<int> > > getBoundedPaths( std::vector<int> &
   void visualizePath( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 		      std::vector<std::vector<double> > _path,
 		      bool _viewObstacles = false,
-		      int _r = 0, int _g = 0, int _b = 255 );
+		      int _r = 0, int _g = 0, int _b = 255,
+		      float _ballRadius = 0.02,
+		      int _br = 255, int _bg = 0, int _bb = 0 );
 
   void visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
 		       std::vector<std::vector<std::vector<double> > > _path,
-		       bool _viewObstacles = false );
+		       bool _viewObstacles = false,
+		       float _ballRadius = 0.02,
+		       int _br = 255, int _bg = 0, int _bb = 0 );
+
+  void visualizeObstacles( boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer,
+			   int _r, int _g, int _b );
 
  private:
 

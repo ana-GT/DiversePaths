@@ -46,3 +46,7 @@ target_link_libraries( test6 ${PCL_LIBRARIES} )
 # Test 7
 add_executable( test7 test7.cpp ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )
 target_link_libraries( test7 ${PCL_LIBRARIES} )
+
+# Simulation Draws
+add_executable( simulationDraws simulationDraws.cpp ${hdr_files} ${RosFx_srcs} ${PCL_srcs} )
+target_link_libraries( simulationDraws ${PCL_LIBRARIES} )
