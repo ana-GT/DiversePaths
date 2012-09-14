@@ -56,7 +56,7 @@ int main( int argc, char* argv[] ) {
 
   // Get paths
   float boundFactor = 2.0;
-  int numCheckPoints = 10;
+  int numCheckPoints = 20;
   time_t ts = clock();
   paths = dp.getDiversePaths2( start, goal, numPaths, midPoints, boundFactor, numCheckPoints );
   time_t tf = clock();
@@ -72,21 +72,23 @@ int main( int argc, char* argv[] ) {
   reset_PCL_Tools_counters();
 
   // MidPoints: View pointcloud (NOT BOTH Balls and pointcloud)
-   viewPoints( midPoints, viewer, 255,0,255 );
+  // viewPoints( midPoints, viewer, 255,0,255 );
 
-   // Get checkPoint Lines
-   std::vector<std::vector<std::vector<double> > > checkLines;
-   if( paths.size() >= 2 ) {
-     checkLines = dp.getCheckPointLines( paths[0], paths[2], numCheckPoints );
+  // Get checkPoint Lines
+  int ind = 4;
+  std::vector<std::vector<std::vector<double> > > checkLines;
+   if( paths.size() > 1 ) {
+     checkLines = dp.getCheckPointLines( paths[0], paths[ind], numCheckPoints );
    } else {
      printf( " !! Only one path, no drawing checkPoint lines! \n" );
    }
-
+   
    for( int i = 0; i < checkLines.size(); ++i ) {
-     viewPath( checkLines[i], viewer, 0, 0, 255 );
+     //  viewPath( checkLines[i], viewer, 0, 0, 255 );
    }
 
-  dp.visualizePaths( viewer, paths, true );
+   dp.visualizePath( viewer, paths[0], true, 0, 100, 0 );
+   dp.visualizePath( viewer, paths[ind], true, 255, 69, 0 );
 
   // Loop
   while( !viewer->wasStopped() ) {

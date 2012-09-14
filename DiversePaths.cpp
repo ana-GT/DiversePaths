@@ -258,7 +258,7 @@ bool DiversePaths::testFreeLine( const std::vector<int> &_pointA,
 		      _pointB[0], _pointB[1], _pointB[2] );
 
   for( int j = 0; j < testLine.size(); ++j ) {
-    if( !isValidCell( testLine[j][0], testLine[j][1], testLine[j][2] ) ) {
+    if( isObstacleCell( testLine[j][0], testLine[j][1], testLine[j][2] ) ) {
       flag = false; break;
     }
   }
@@ -322,7 +322,7 @@ std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths(
   // Get the paths that are not first-degree deformable
   std::vector<std::vector<std::vector<int> > > noDefPaths;
 
-  int minBlockedPoints = _numCheckPoints / 2;
+  int minBlockedPoints = (int)(_numCheckPoints*0.4 );
   int count;
   
   for( int i = 0; i < _pathSet.size(); ++i ) {
@@ -1632,7 +1632,7 @@ void DiversePaths::visualizePath( boost::shared_ptr<pcl::visualization::PCLVisua
     
     // Visualize obstacles (or not)
     int obsR; int obsG; int obsB;
-    obsR = 0; obsG = 255; obsB = 0;
+    obsR = 0; obsG = 0; obsB = 255;
     
     //-- Get obstacles
     std::vector<Eigen::Vector3d> obstacles;
@@ -1673,7 +1673,7 @@ void DiversePaths::visualizePaths( boost::shared_ptr<pcl::visualization::PCLVisu
     
     // Visualize obstacles (or not)
     int obsR; int obsG; int obsB;
-    obsR = 0; obsG = 255; obsB = 0;
+    obsR = 0; obsG = 0; obsB = 255;
     
     //-- Get obstacles
     std::vector<Eigen::Vector3d> obstacles;
