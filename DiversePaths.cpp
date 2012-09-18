@@ -72,50 +72,63 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
   mDf->worldToGrid( _start[0], _start[1], _start[2], start[0], start[1], start[2] );
   mDf->worldToGrid( _goal[0], _goal[1], _goal[2], goal[0], goal[1], goal[2] );
 
-  //-- 1. Get Dijkstra
-  printf("Run Dijkstra goal \n");
-  runDijkstra( _goal, dGoal );
+  time_t ts;
+  time_t tf;
+  double dt;
 
-  printf("Run Dijkstra start \n");
+  //-- 1. Get Dijkstra
+  //printf("Run Dijkstra goal \n");
+  ts = clock();
+  runDijkstra( _goal, dGoal );
+  tf = clock();
+  dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+  printf( "--> Dijkstra Goal: %f \n", dt );
+
+  //printf("Run Dijkstra start \n");
+  ts = clock();
   runDijkstra( _start, dStart );
+  tf = clock();
+  dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+  printf( "--> Dijkstra Start: %f \n", dt );
 
   //-- 2. Get the first path ( cells )
-  printf("Get Shortest Path \n");
+  //printf("Get Shortest Path \n");
   getShortestPath( start, goal, cellPath, dGoal, false );
-
-  printf("[0] Saving path of size %d \n", cellPath.size() );
+	 
+  //printf("[0] Saving path of size %d  and cost: %d\n", cellPath.size(), getPathCost(cellPath) );
   paths.push_back( getWorldPoints( cellPath ) );
   
   //-- 3. Get the paths limited by size
   std::vector<std::vector<std::vector<int> > > boundedPaths;
   std::vector<int> boundedPathCosts;
 
-  printf( "--> Start Bounded Paths \n" );
-  time_t ts = clock();
+  //printf( "--> Start Bounded Paths \n" );
+  ts = clock();
   boundedPaths = getBoundedPaths( boundedPathCosts, start, goal, 
 				  dStart, dGoal, 
 				  getPathCost( cellPath ), _boundFactor );
-  time_t tf = clock();
-  double dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+  tf = clock();
+  dt = (double) (tf - ts) / CLOCKS_PER_SEC;
   printf( "--> End %d bounded Paths: %f \n", boundedPaths.size(), dt );
      
   std::vector<std::vector<std::vector<int> > > noDeformPaths;
   std::vector<int> noDeformPathCosts;
 
+  ts = clock();
   for( int i = 1; i < mNumPaths; ++i ) {
 
     // Get NoDeformable Paths
-    printf("[%d] Start Deformable paths with input bounded paths of %d \n", i, boundedPaths.size() );
-    ts = clock();
+    //printf("[%d] Start Deformable paths with input bounded paths of %d \n", i, boundedPaths.size() );
+    //ts = clock();
     noDeformPaths = getNoDeformablePaths( boundedPaths, boundedPathCosts, 
 					  noDeformPathCosts, cellPath, _numCheckPoints );
-    tf = clock();
-    dt = (double) (tf - ts) / CLOCKS_PER_SEC;
-    printf( "--> [%d] End %d Deformable Paths: %f with %d checkpoints \n", i, noDeformPaths.size(), dt, _numCheckPoints );
+    //tf = clock();
+    //dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+    //printf( "--> [%d] End %d Deformable Paths: %f with %d checkpoints \n", i, noDeformPaths.size(), dt, _numCheckPoints );
 
     // Check that there are candidates, otherwise get out of the loop
     if( noDeformPaths.size() == 0 ) {
-      printf("No more deformPaths, exiting the loop at iteration [%d] \n", i );
+      //printf("No more deformPaths, exiting the loop at iteration [%d] \n", i );
       break;
     }
   
@@ -129,10 +142,11 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
       }
     }
 
-    printf("Got %d noDeformable paths with a minimum cost of %d, picking one in the middle \n", minPaths.size(), minCost );
+    //printf("Got %d noDeformable paths with a minimum cost of %d, picking one in the middle \n", minPaths.size(), minCost );
     cellPath = minPaths[ minPaths.size() / 2 ];
 
     // Save it
+    //printf("[%d] Saving path of cost: %d \n", i, minCost );
     paths.push_back( getWorldPoints(cellPath) );
 
     // Refresh
@@ -142,21 +156,16 @@ std::vector<std::vector<std::vector<double> > > DiversePaths::getDiversePaths2( 
     noDeformPaths.resize(0);
   }
 
+  tf = clock();
+  dt = (double) (tf - ts) / CLOCKS_PER_SEC;
+  printf( "--> Pruning loop time: %f \n", dt );
+
+
   std::vector<std::vector<int> > midCells;
   for( int i = 0; i < boundedPaths.size(); ++i ) {
     midCells.push_back( boundedPaths[i][ boundedPaths[i].size() / 2 ] );
   }
   _midPoints = getWorldPoints( midCells );
-
-  ////////////////////////////
-  // Only to visualize
-  paths.resize(0);
-  for( int i = 0; i < boundedPaths.size(); ++i ) {
-    paths.push_back( getWorldPoints(boundedPaths[i]));
-  } 
-  ////////////////////////////
-
-
 
   return paths;
 }
@@ -332,7 +341,7 @@ std::vector<std::vector<std::vector<int> > > DiversePaths::getNoDeformablePaths(
   // Get the paths that are not first-degree deformable
   std::vector<std::vector<std::vector<int> > > noDefPaths;
 
-  int minBlockedPoints = (int)(_numCheckPoints*0.4 );
+  int minBlockedPoints = (int)(_numCheckPoints*0.1 );
   int count;
   
   for( int i = 0; i < _pathSet.size(); ++i ) {

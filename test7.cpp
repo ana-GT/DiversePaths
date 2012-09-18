@@ -50,7 +50,7 @@ int main( int argc, char* argv[] ) {
   std::vector<std::vector<std::vector<double> > > paths;
 
   // Get paths
-  float boundFactor = 4.0;
+  float boundFactor = 2.0;
   int numCheckPoints = 10;
   time_t ts = clock();
   paths = dp.getDiversePaths2( start, goal, numPaths, midPoints, boundFactor, numCheckPoints );

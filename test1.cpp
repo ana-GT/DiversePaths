@@ -40,7 +40,7 @@ int main( int argc, char* argv[] ) {
   pf.addBox( 0.6, 0.5, 0.1, bx + 0.0, by + 0.0, bz + 0.5 );
 
   // Settings parameters
-  int cost = 10; int radius = 3; int numPaths = 5;
+  int cost = 6; int radius = 3; int numPaths = 5;
 
   DiversePaths dp( &pf, radius, cost );
 
@@ -56,7 +56,7 @@ int main( int argc, char* argv[] ) {
 
   // Get paths
   float boundFactor = 2.0;
-  int numCheckPoints = 20;
+  int numCheckPoints = 10;
   time_t ts = clock();
   paths = dp.getDiversePaths2( start, goal, numPaths, midPoints, boundFactor, numCheckPoints );
   time_t tf = clock();
@@ -75,6 +75,7 @@ int main( int argc, char* argv[] ) {
   // viewPoints( midPoints, viewer, 255,0,255 );
 
   // Get checkPoint Lines
+  /*
   int ind = 1;
   std::vector<std::vector<std::vector<double> > > checkLines;
    if( paths.size() > 1 ) {
@@ -89,7 +90,9 @@ int main( int argc, char* argv[] ) {
 
    dp.visualizePath( viewer, paths[0], false, 0, 100, 0 );
    dp.visualizePath( viewer, paths[ind], true, 255, 69, 0 );
-
+  */
+  dp.visualizePaths( viewer, paths, true, 0, 0, 100 );
+  
   // Loop
   while( !viewer->wasStopped() ) {
     viewer->spinOnce(100);

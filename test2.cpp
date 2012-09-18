@@ -74,6 +74,7 @@ int main( int argc, char* argv[] ) {
   //viewPoints( midPoints, viewer, 255,0,255 );
 
   // Get checkPoint Lines
+  /*
   int ind = 3;
   std::vector<std::vector<std::vector<double> > > checkLines;
    if( paths.size() > 1 ) {
@@ -85,9 +86,9 @@ int main( int argc, char* argv[] ) {
    for( int i = 0; i < checkLines.size(); ++i ) {
        dp.visualizePath( viewer, checkLines[i], false, 0, 200, 0, 0.008, 0, 0, 200 );
    }
-
-   dp.visualizePath( viewer, paths[0], false, 0, 100, 0 );
-   dp.visualizePath( viewer, paths[ind], true, 255, 69, 0 );
+  */
+   // dp.visualizePath( viewer, paths[0], false, 0, 100, 0 );
+   dp.visualizePaths( viewer, paths, true, 255, 69, 0 );
 
   // Loop
   while( !viewer->wasStopped() ) {

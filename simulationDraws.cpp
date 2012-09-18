@@ -72,7 +72,7 @@ int main( int argc, char* argv[] ) {
   reset_PCL_Tools_counters();
   
   // MidPoints: View pointcloud (NOT BOTH Balls and pointcloud)
-  viewPoints( midPoints, viewer, 0, 255, 0 );
+  viewPoints( midPoints, viewer,0, 255, 0 );
   /*
   // Get checkPoint Lines
   int ind = 1;
